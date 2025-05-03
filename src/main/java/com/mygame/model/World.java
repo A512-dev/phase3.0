@@ -28,8 +28,7 @@ public class World {
 
     //debugg
     public World() {
-        if (!timeController.isPaused())
-            timeController.togglePause();
+
 
         // Center-to-center collisions (head-on)
         for (int i = 0; i < 4; i++) {

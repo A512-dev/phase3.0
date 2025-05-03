@@ -2,7 +2,6 @@
 package com.mygame.ui;
 
 import javax.swing.*;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -12,12 +11,10 @@ import java.util.Hashtable;
 
 import com.mygame.engine.GameLoop;
 import com.mygame.engine.TimeController;
-import com.mygame.model.HUDState;
 import com.mygame.model.World;
 import com.mygame.view.WorldView;
 
 public class GamePanel extends JPanel {
-    private final TimeController timeController = new TimeController();
     private  World         world          = new World();
 
     public World getWorld() {
@@ -54,6 +51,7 @@ public class GamePanel extends JPanel {
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
+                System.out.println("Key pressed: " + e.getKeyCode());
                 int code = e.getKeyCode();
 
                 if (code == KeyEvent.VK_ESCAPE) {
@@ -67,9 +65,18 @@ public class GamePanel extends JPanel {
                 }
 
                 if (code == KeyEvent.VK_SPACE) {
-                    if (world.getTimeController().isWaitingToStart()) {
-                        world.getTimeController().startFromZero();
-                        System.out.println("started from 0");
+                    TimeController tc = world.getTimeController();
+
+                    if (tc.isWaitingToStart()) {
+                        // 🟦 Initial state → start sim
+                        tc.startFromFreeze();
+                        tc.toggleFrozen();
+                        tc.setTimeMultiplier(1.0);  // normal speed
+                        System.out.println("⏯ Starting from zero");
+                    } else {
+                        // ⏸️ Toggle freeze
+                        tc.toggleFrozen();
+                        System.out.println(tc.isFrozen() ? "⏸ Paused" : "▶️ Resumed");
                     }
                 }
             }
@@ -115,29 +122,39 @@ public class GamePanel extends JPanel {
         timeSlider.setBounds(10, getHeight() - 40, 300, 30);
         timeSlider.setFocusable(true);
         timeSlider.addChangeListener(e -> {
-            if (timeSlider.getValueIsAdjusting()) {
-                double t = timeSlider.getValue() / 10.0;  // 1 decimal precision
-                world.getTimeController().jumpTo(t);
-            }
-        });
-        timeSlider.setVisible(true);
-        timeSlider.setBounds(getWidth() / 2 - 150, getHeight() - 50, 300, 30);
-        timeSlider.addChangeListener(e -> {
+            System.out.println("slider movenewjwfwefkwfwfkwefwefl");
             if (!timeSlider.getValueIsAdjusting()) {
                 double target = timeSlider.getValue();
-                if (target>0) {
-                    // 1. Reset to initial state
-                    world.resetToSnapshot(world.getInitialState());
-                    world.getHudState().resetGameTime(); // gameTime = 0
-                    timeController.setTimeMultiplier(20.0); // fast
-                    timeController.jumpTo(target);
+                world.resetToSnapshot(world.getInitialState());
+                world.getHudState().resetGameTime();
+                if (target > 0) {
+                    world.getTimeController().setTimeMultiplier(8);
+                    world.getTimeController().jumpTo(target);
+                    world.getTimeController().startFromFreeze();  // allow sim to run
+                } else {
+                    // Reset and freeze at t=0
+                    world.getTimeController().waitToStart();
                 }
-                if (!timeController.isWaitingToStart()) {
-                    timeController.waitToStart(); // stand still for deterministic control
-                }
+
+                requestFocusInWindow();  // regain key focus after slider interaction
             }
+//            if (!timeSlider.getValueIsAdjusting()) {
+//                double target = timeSlider.getValue();
+//                if (target>0) {
+//
+//                    // 1. Reset to initial state
+//                    world.getTimeController().setTimeMultiplier(20.0);
+//                    world.getTimeController().jumpTo(target);
+//                    world.getTimeController().startFromFreeze();  // let sim run
+//                }
+//                if (!world.getTimeController().isWaitingToStart()) {
+//                    world.getTimeController().waitToStart(); // stand still for deterministic control
+//                }
+//            }
         });
         add(timeSlider);
+        setFocusable(true);
+        SwingUtilities.invokeLater(this::requestFocusInWindow);
 
     }
 
@@ -145,8 +162,8 @@ public class GamePanel extends JPanel {
      * Called by GameLoop once per logic tick.
      */
     public void updateLogic(double dt) {
-        timeController.updateRealTime(dt);
-        double simDt = timeController.getDeltaSeconds();
+        world.getTimeController().updateRealTime(dt);
+        double simDt = world.getTimeController().getDeltaSeconds();
         if (simDt > 0) {
             world.updateAll(simDt);
         }
@@ -201,10 +218,7 @@ public class GamePanel extends JPanel {
 
         timeSlider.setVisible(true);
         timeSlider.setBounds(getWidth() / 2 - 150, getHeight() - 50, 300, 30);
-        int sliderTime = (int) (world.getHudState().getGameTime() * 10);
-        if (!timeSlider.getValueIsAdjusting()) {
-            timeSlider.setValue(sliderTime);
-        }
+        g.drawString("Time: " + String.format("%.2f", world.getHudState().getGameTime()), 10, 20);
 
     }
     private Runnable onGameOver;
@@ -216,10 +230,10 @@ public class GamePanel extends JPanel {
 
     /** Expose jump/pause controls to your UI/buttons */
     public void jumpTo(double seconds) {
-        timeController.jumpTo(seconds);
+        world.getTimeController().jumpTo(seconds);
     }
 
     public void togglePause() {
-        timeController.togglePause();
+        world.getTimeController().togglePause();
     }
 }

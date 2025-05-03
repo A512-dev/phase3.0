@@ -8,7 +8,7 @@
 //    private static double timeMultiplier = 1.0;
 //    private static boolean waitingToStart = true;
 //
-//    public void startFromZero() {
+//    public void startFromFreeze() {
 //        waitingToStart = true;
 //    }
 //
@@ -70,6 +70,14 @@ public class TimeController {
     private boolean paused = false;
     private double timeMultiplier = 1.0;
     private boolean waitingToStart = true;
+    private boolean frozen = true;
+    public void toggleFrozen() {
+        frozen = !frozen;
+    }
+
+    public boolean isFrozen() {
+        return frozen;
+    }
 
     public void updateRealTime(double dt) {
         if (paused) return;
@@ -82,7 +90,7 @@ public class TimeController {
     }
 
     public double getDeltaSeconds() {
-        if (waitingToStart || paused || targetTime >= 0) return 0;
+        if (waitingToStart || paused || frozen || targetTime >= 0) return 0;
         return dtForFrame() * timeMultiplier;
     }
 
@@ -118,7 +126,7 @@ public class TimeController {
         waitingToStart = true;
     }
 
-    public void startFromZero() {
+    public void startFromFreeze() {
         waitingToStart = false;
     }
 
