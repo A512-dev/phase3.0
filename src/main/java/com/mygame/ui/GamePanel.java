@@ -8,6 +8,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.Hashtable;
 
 import com.mygame.engine.GameLoop;
 import com.mygame.engine.TimeController;
@@ -53,16 +54,29 @@ public class GamePanel extends JPanel {
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-                    world.getTimeController().togglePause();
-                    resumeButton.setEnabled(true);
-                    resumeButton.setVisible(true);
-                    System.out.println("paused");
+                int code = e.getKeyCode();
+
+                if (code == KeyEvent.VK_ESCAPE) {
+                    // Toggle pause/resume only if game already started
+                    if (!world.getTimeController().isWaitingToStart()) {
+                        world.getTimeController().togglePause();
+                        resumeButton.setEnabled(true);
+                        resumeButton.setVisible(true);
+                        System.out.println("paused");
+                    }
+                }
+
+                if (code == KeyEvent.VK_SPACE) {
+                    if (world.getTimeController().isWaitingToStart()) {
+                        world.getTimeController().startFromZero();
+                        System.out.println("started from 0");
+                    }
                 }
             }
         });
+
         // TODO: add key/mouse listeners here
-        SwingUtilities.invokeLater(() -> requestFocusInWindow());
+        SwingUtilities.invokeLater(this::requestFocusInWindow);
         resumeButton = new JButton("Resume");
         resumeButton.setFocusable(false);
         resumeButton.setVisible(false);  // start hidden
@@ -80,10 +94,24 @@ public class GamePanel extends JPanel {
 
         setLayout(null);  // we will position it manually
         add(resumeButton);
-        SwingUtilities.invokeLater(() -> requestFocusInWindow());
+        SwingUtilities.invokeLater(this::requestFocusInWindow);
 
 
-        timeSlider = new JSlider(0, 60 * 10);  // 0 to 600 tenths of a second (1 decimal precision)
+        timeSlider = new JSlider(0, 30, 0); // range 0 to 30 seconds
+        timeSlider.setMajorTickSpacing(10); // spacing between ticks
+        timeSlider.setPaintTicks(true);
+        timeSlider.setPaintLabels(true);
+        timeSlider.setFocusable(false);
+        timeSlider.setVisible(false);
+
+        // Optional: precise labels (cleaner than auto-generated)
+        Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
+        labelTable.put(0, new JLabel("0s"));
+        labelTable.put(10, new JLabel("10s"));
+        labelTable.put(20, new JLabel("20s"));
+        labelTable.put(30, new JLabel("30s"));
+        timeSlider.setLabelTable(labelTable);
+
         timeSlider.setBounds(10, getHeight() - 40, 300, 30);
         timeSlider.setFocusable(true);
         timeSlider.addChangeListener(e -> {
@@ -97,15 +125,15 @@ public class GamePanel extends JPanel {
         timeSlider.addChangeListener(e -> {
             if (!timeSlider.getValueIsAdjusting()) {
                 double target = timeSlider.getValue();
-
-                // 1. Reset to initial state
-                world.resetToSnapshot(world.getInitialState());
-                world.getHudState().resetGameTime(); // gameTime = 0
-                timeController.setTimeMultiplier(20.0); // fast
-                timeController.jumpTo(target);
-
-                if (!timeController.isPaused()) {
-                    timeController.togglePause(); // pause for deterministic control
+                if (target>0) {
+                    // 1. Reset to initial state
+                    world.resetToSnapshot(world.getInitialState());
+                    world.getHudState().resetGameTime(); // gameTime = 0
+                    timeController.setTimeMultiplier(20.0); // fast
+                    timeController.jumpTo(target);
+                }
+                if (!timeController.isWaitingToStart()) {
+                    timeController.waitToStart(); // stand still for deterministic control
                 }
             }
         });

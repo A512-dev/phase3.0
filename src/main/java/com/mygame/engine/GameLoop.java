@@ -42,12 +42,13 @@ public class GameLoop {
                 if (elapsed >= nsPerUpdate) {
                     double realDt = elapsed / 1_000_000_000.0;
 
-                    TimeController.updateRealTime(realDt);  // <-- update time tracking
-                    double gameDt = TimeController.getDeltaSeconds();  // <-- obey paused state
+                    panel.getWorld().getTimeController().updateRealTime(realDt);
+                    double gameDt = panel.getWorld().getTimeController().getDeltaSeconds();
 
                     if (gameDt > 0) {
                         panel.updateLogic(gameDt);
                     }
+
 
                     lastTime = now;
                 } else {

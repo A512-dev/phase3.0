@@ -9,6 +9,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class World {
+
+
+
+    private boolean gameOver = false;
+    private final List<Packet> packets = new ArrayList<>();
+    private final List<SystemNode> nodes = new ArrayList<>();
+    private final List<Connection> connections = new ArrayList<>();
+    private final HUDState hud = new HUDState();
+
+    private final CollisionManager collisionManager = new CollisionManager();
+    private final TimeController timeController = new TimeController();
     private WorldSnapshot initialState;
 
     public WorldSnapshot getInitialState() {
@@ -17,6 +28,9 @@ public class World {
 
     //debugg
     public World() {
+        if (!timeController.isPaused())
+            timeController.togglePause();
+
         // Center-to-center collisions (head-on)
         for (int i = 0; i < 4; i++) {
             Vector2D a = new Vector2D(100 + i * 30, 200);
@@ -93,16 +107,6 @@ public class World {
         connections.addAll(snapshot.connections.stream().map(Connection::copy).collect(Collectors.toList()));
     }
 
-
-
-    private boolean gameOver = false;
-    private final List<Packet> packets = new ArrayList<>();
-    private final List<SystemNode> nodes = new ArrayList<>();
-    private final List<Connection> connections = new ArrayList<>();
-    private final HUDState hud = new HUDState();
-
-    private final CollisionManager collisionManager = new CollisionManager();
-    private final TimeController timeController = new TimeController();
     public TimeController getTimeController() {
         return timeController;
     }
@@ -143,6 +147,14 @@ public class World {
         if (hud.getPacketLossRatio() > 0.5) {
             gameOver = true;
         }
+
+        if (timeController.getTargetTime() >= 0 &&
+                hud.getGameTime() >= timeController.getTargetTime()) {
+            timeController.stopJump();
+            timeController.setTimeMultiplier(1.0);
+            timeController.waitToStart();
+        }
+
 
     }
 
