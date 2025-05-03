@@ -147,8 +147,11 @@ public class World {
             gameOver = true;
         }
 
+
         if (timeController.getTargetTime() >= 0 &&
                 hud.getGameTime() >= timeController.getTargetTime()) {
+            System.out.println("Reached Target");
+            hud.setGameTime(timeController.getTargetTime());
             timeController.stopJump();
             timeController.setTimeMultiplier(1.0);
             timeController.waitToStart();

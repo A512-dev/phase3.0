@@ -81,16 +81,17 @@ public class TimeController {
 
     public void updateRealTime(double dt) {
         if (paused) return;
-        if (targetTime >= 0) {
-            realTimeAccumulator = targetTime;
-            targetTime = -1;
-        } else {
-            realTimeAccumulator += dt;
-        }
+//        if (targetTime >= 0) {
+//            realTimeAccumulator = targetTime;
+//            targetTime = -1;
+//        } else {
+//            realTimeAccumulator += dt;
+//        }
+        realTimeAccumulator += dt;
     }
 
     public double getDeltaSeconds() {
-        if (waitingToStart || paused || frozen || targetTime >= 0) return 0;
+        if (waitingToStart || paused || frozen) return 0;
         return dtForFrame() * timeMultiplier;
     }
 

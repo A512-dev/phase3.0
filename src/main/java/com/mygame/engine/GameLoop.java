@@ -64,9 +64,13 @@ public class GameLoop {
         }, "LogicThread");
 
         // Render Thread
+
         renderThread = new Thread(() -> {
             final long sleepMillis = (long)(1000.0 / fps);
             while (running) {
+                z++;
+                if (z%60==0)
+                    System.out.println("hud="+panel.getWorld().getHudState().getGameTime()+" Target="+panel.getWorld().getTimeController().getTargetTime());
                 SwingUtilities.invokeLater(panel::repaint);
                 try {
                     Thread.sleep(sleepMillis);
@@ -77,7 +81,7 @@ public class GameLoop {
         logicThread.start();
         renderThread.start();
     }
-
+    int z = 0;
     public void stop() {
         running = false;
         try {

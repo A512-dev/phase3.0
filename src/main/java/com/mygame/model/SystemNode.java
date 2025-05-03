@@ -1,12 +1,18 @@
 package com.mygame.model;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 public class SystemNode {
     private double x, y, width, height;
-    private final List<Port> inputs = new ArrayList<>();
-    private final List<Port> outputs = new ArrayList<>();
+    private List<Port> inputPorts = new ArrayList<>();
+    private List<Port> outputPorts = new ArrayList<>();
+    private Queue<Packet> packetQueue = new LinkedList<>();
+    private final int MAX_QUEUE_SIZE = 5;
+    private final int timeSendFromPort = 3; // seconds
+    private double timer = 0;
 
     public SystemNode(double x, double y, double width, double height) {
         this.x = x;
@@ -15,8 +21,12 @@ public class SystemNode {
         this.height = height;
     }
 
-    public void addInput(Port port) { inputs.add(port); }
-    public void addOutput(Port port) { outputs.add(port); }
+    public void addInput(Port port) {
+        inputPorts.add(new Port(this, type, PortDirection.INPUT));
+    }
+    public void addOutput(Port port) {
+        outputPorts.add(new Port(this, type, PortDirection.OUTPUT));
+    }
 
     public List<Port> getInputs() { return inputs; }
     public List<Port> getOutputs() { return outputs; }

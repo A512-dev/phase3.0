@@ -104,8 +104,8 @@ public class GamePanel extends JPanel {
         SwingUtilities.invokeLater(this::requestFocusInWindow);
 
 
-        timeSlider = new JSlider(0, 30, 0); // range 0 to 30 seconds
-        timeSlider.setMajorTickSpacing(10); // spacing between ticks
+        timeSlider = new JSlider(0, 9, 0); // range 0 to 30 seconds
+        timeSlider.setMajorTickSpacing(3); // spacing between ticks
         timeSlider.setPaintTicks(true);
         timeSlider.setPaintLabels(true);
         timeSlider.setFocusable(false);
@@ -114,9 +114,9 @@ public class GamePanel extends JPanel {
         // Optional: precise labels (cleaner than auto-generated)
         Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
         labelTable.put(0, new JLabel("0s"));
-        labelTable.put(10, new JLabel("10s"));
-        labelTable.put(20, new JLabel("20s"));
-        labelTable.put(30, new JLabel("30s"));
+        labelTable.put(3, new JLabel("3s"));
+        labelTable.put(6, new JLabel("6s"));
+        labelTable.put(9, new JLabel("9s"));
         timeSlider.setLabelTable(labelTable);
 
         timeSlider.setBounds(10, getHeight() - 40, 300, 30);
@@ -127,7 +127,7 @@ public class GamePanel extends JPanel {
                 double target = timeSlider.getValue();
                 world.resetToSnapshot(world.getInitialState());
                 world.getHudState().resetGameTime();
-                if (target > 0)     {
+                if (target > 0) {
                     world.getTimeController().setTimeMultiplier(8);
                     world.getTimeController().jumpTo(target);
                     world.getTimeController().startFromFreeze();  // allow sim to run

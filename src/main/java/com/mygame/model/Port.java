@@ -7,10 +7,10 @@ public class Port {
 
     private final Vector2D position;
     private final Type type;
-    private final SystemNode systemNode;
+    private final SystemNode owner;
 
     public Port(SystemNode systemNode, Vector2D position, Type type) {
-        this.systemNode = systemNode;
+        this.owner = systemNode;
         this.position = position;
         this.type = type;
     }
