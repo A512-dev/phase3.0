@@ -127,7 +127,7 @@ public class GamePanel extends JPanel {
                 double target = timeSlider.getValue();
                 world.resetToSnapshot(world.getInitialState());
                 world.getHudState().resetGameTime();
-                if (target > 0) {
+                if (target > 0)     {
                     world.getTimeController().setTimeMultiplier(8);
                     world.getTimeController().jumpTo(target);
                     world.getTimeController().startFromFreeze();  // allow sim to run
