@@ -46,7 +46,6 @@ public abstract class Packet {
     public void setPath(Vector2D start, Vector2D end) {
         this.pathStart = start;
         this.pathEnd = end;
-        position = start;
         this.baseVelocity = new Vector2D(end.x - start.x, end.y - start.y).normalized().multiplied(30);
     }
 
@@ -85,18 +84,44 @@ public abstract class Packet {
     public int getLife() { return life; }
     public int getCoinValue() { return coinValue; }
 
+    public Vector2D getPathStart() {
+        return pathStart;
+    }
+
+    public void setPathStart(Vector2D pathStart) {
+        this.pathStart = pathStart;
+    }
+
+    public Vector2D getPathEnd() {
+        return pathEnd;
+    }
+
+    public void setPathEnd(Vector2D pathEnd) {
+        this.pathEnd = pathEnd;
+    }
+
     public boolean isOffTrackLine(double maxDistance) {
-        Vector2D p = this.position;
-        Vector2D a = this.pathStart;
-        Vector2D b = this.pathEnd;
+        Vector2D p = getPosition();
+        Vector2D a = getPathStart();
+        Vector2D b = getPathEnd();
 
         // Distance from point p to line segment ab
         double dist = distanceToSegment(p, a, b);
         return dist > maxDistance;
     }
+    public boolean isOffTrackLine(int maxDistanceToBeOfTheLine, Vector2D predictedPos) {
+        Vector2D p = predictedPos;
+        Vector2D a = getPathStart();
+        Vector2D b = getPathEnd();
+
+        // Distance from point p to line segment ab
+        double dist = distanceToSegment(p, a, b);
+        return dist > maxDistanceToBeOfTheLine;
+    }
+
 
     // Helper function
-    private double distanceToSegment(Vector2D p, Vector2D a, Vector2D b) {
+    public double distanceToSegment(Vector2D p, Vector2D a, Vector2D b) {
         Vector2D ab = b.subtracted(a);
         Vector2D ap = p.subtracted(a);
 
@@ -115,4 +140,6 @@ public abstract class Packet {
 
 
     public abstract Packet copy();
+
+
 }

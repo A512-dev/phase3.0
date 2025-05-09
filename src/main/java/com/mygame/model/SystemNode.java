@@ -46,12 +46,13 @@ public class SystemNode {
                 if (!outPort.isBusy() && outPort.getConnectedPort() != null && !packetQueue.isEmpty()) {
                     Packet packet = packetQueue.poll();
                     // mark it mobile & set its path
+                    worldPackets.add(packet);
                     packet.setMobile(true);
+                    packet.position = outPort.getCenter();
                     packet.setPath(
                             outPort.getCenter(),
                             outPort.getConnectedPort().getCenter()
                     );
-                    worldPackets.add(packet);
                     outPort.setBusy(true);
                 }
             }

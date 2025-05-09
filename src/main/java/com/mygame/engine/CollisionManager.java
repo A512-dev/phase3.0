@@ -1,6 +1,7 @@
 package com.mygame.engine;
 
 import com.mygame.model.Packet;
+import com.mygame.util.Database;
 import com.mygame.util.Vector2D;
 
 import java.util.*;
@@ -41,7 +42,6 @@ public class CollisionManager {
                         if (distance <= combined) {
                             a.onCollision();
                             b.onCollision();
-
                             Vector2D impact = a.getPosition().added(b.getPosition()).multiplied(0.5);
                             applyImpactWave(packets, impact);
                         }
@@ -55,11 +55,20 @@ public class CollisionManager {
     private void applyImpactWave(List<Packet> packets, Vector2D center) {
         for (Packet p : packets) {
             if (!p.isAlive()) continue;
+            if (!p.isMobile()) continue;
             double d = p.getPosition().distanceTo(center);
             if (d < IMPACT_RADIUS && d > 0) {
                 Vector2D dir = p.getPosition().subtracted(center).normalized();
                 Vector2D impulse = dir.multiplied((1 - d / IMPACT_RADIUS) * IMPULSE_FORCE);
                 p.getImpulse().add(impulse);   // ✅ new method to access impactImpulse
+
+                // **IMMEDIATE OFF-TRACK CHECK**
+                // pretend we moved by impulse for this frame:
+                Vector2D predictedPos = p.getPosition().added(impulse.multiplied(1.0/60.0));
+                if (p.isOffTrackLine(Database.maxDistanceToBeOfTheLine, predictedPos)) {
+                    System.out.println("offfff");
+                    p.setUnAlive();
+                }
             }
         }
     }

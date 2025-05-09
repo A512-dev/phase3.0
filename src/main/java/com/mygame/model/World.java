@@ -133,27 +133,50 @@ public class World {
 //        hud.setGameTime(hud.getGameTime() + dt);
 //    }
     public void updateAll(double dt) {
+//        if (!packets.isEmpty()) {
+//            Packet test = packets.get(0);
+//            Vector2D a = test.getPathStart();
+//            Vector2D b = test.getPathEnd();
+//            // pick a point 20px “above” the line:
+//            Vector2D pOff = test.getPosition().added(
+//                    b.subtracted(a).perpendicular().normalized().multiplied(20)
+//            );
+//            double d = test.distanceToSegment(pOff, a, b);
+//            System.out.println("DEBUG: off-line test distance = " + d);
+//        }
         long start = System.nanoTime();
-        List<Packet> stillAlive = new ArrayList<>();
         int maxDistance = Database.maxDistanceToBeOfTheLine;
-
+        // 1) Move everything
         for (Packet p : packets) {
             p.update(dt);
-            //System.out.println("Packet="+p+"________    "+p.getPosition().toString()+"___mobile:"+p.isMobile());
+        }
+        // 2) Handle collisions & apply impulses
+        collisionManager.checkCollisions(packets);
 
-            if (!p.isAlive()) {
+        // 3) NOW cull off-track & dead packets immediately
+        List<Packet> stillAlive = new ArrayList<>();
+        //System.out.println(packets.size());
+        for (int i=0; i<packets.size(); i++) {
+            Packet p = packets.get(i);
+            System.out.println(i+"distanceToLine"+p.distanceToSegment(p.getPosition(), p.getPathStart(), p.getPathEnd()));
+            System.out.println("Position"+p.getPosition());
+            System.out.println("pathEnd="+p.getPathEnd());
+            System.out.println("pathStart="+p.getPathStart());
+            if (!p.isAlive() || p.isOffTrackLine(Database.maxDistanceToBeOfTheLine)) {
+                packets.remove(i);
+                //p.setUnAlive();
+                System.out.println("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm");
                 hud.incrementLostPackets();
-            } else if (p.isOffTrackLine(maxDistance)) {
-                hud.incrementLostPackets();
+                System.out.println(hud.getLostPackets());
             } else {
-                stillAlive.add(p);  // keep it
+                stillAlive.add(p);
             }
         }
+        //System.out.println("Hud="+hud.getLostPackets());
 
         packets.clear();
         packets.addAll(stillAlive);
 
-        collisionManager.checkCollisions(packets);
         hud.setGameTime(hud.getGameTime() + dt);
         if (hud.getPacketLossRatio() > 0.5)
             gameOver = true;
@@ -170,7 +193,7 @@ public class World {
             timeController.waitToStart();
         }
         long end = System.nanoTime();
-        System.out.println("World.updateAll took " + (end - start) / 1_000_000.0 + " ms");
+        //System.out.println("World.updateAll took " + (end - start) / 1_000_000.0 + " ms");
     }
 
 
@@ -252,7 +275,7 @@ public class World {
             Vector2D pos = new Vector2D(baseLeft.getPosition().x+baseLeft.getWidth()/2,
                     baseLeft.getPosition().y+baseLeft.getHeight()/2);
             Packet p;
-            if (i % 2 == 0)
+            if (i % 2 == 0 && i%2==1)
                 p = new SquarePacket(pos, new Vector2D(0, 0));
             else
                 p = new TrianglePacket(pos, new Vector2D(0, 0));
@@ -304,6 +327,7 @@ public class World {
                         && !node.getQueuedPackets().isEmpty()) {
                     Packet p = node.getQueuedPackets().poll();
                     p.setMobile(true);
+                    p.position = outPort.getCenter();
                     p.setPath(
                             outPort.getCenter(),
                             outPort.getConnectedPort().getCenter()

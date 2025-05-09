@@ -4,7 +4,7 @@ public class Database {
     public static final int widthNodes = 90;
     public static final int lengthNodes = 150;
     public static final int PORT_SIZE = 10;
-    public static final int maxDistanceToBeOfTheLine = 20;
+    public static final int maxDistanceToBeOfTheLine = 10;
     public static final double MAX_WIRE_LENGTH = 1000; // limit maximum length
     public static final double PORT_CLICK_RADIUS = 8.0; // Radius of clickable area
     public static final Vector2D baseVelocityOfPackets = new Vector2D(30, 0);

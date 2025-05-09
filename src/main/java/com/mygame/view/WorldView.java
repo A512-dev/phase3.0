@@ -28,7 +28,7 @@ public class WorldView {
             long pstart = System.nanoTime();
             packetView.render(g, p);
             long pend = System.nanoTime();
-            System.out.println("Packet render took: " + (pend - pstart) / 1_000_000.0 + " ms");
+            //System.out.println("Packet render took: " + (pend - pstart) / 1_000_000.0 + " ms");
         }
 
 //        for (Packet p : world.getPackets()) {
@@ -36,6 +36,6 @@ public class WorldView {
 //        }
         hudView.render(g, world.getHudState());
         long end = System.nanoTime();
-        System.out.println("RENDER ALL took: " + (end - start) / 1_000_000.0 + " ms");
+        //System.out.println("RENDER ALL took: " + (end - start) / 1_000_000.0 + " ms");
     }
 }

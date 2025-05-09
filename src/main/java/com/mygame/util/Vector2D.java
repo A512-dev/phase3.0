@@ -104,5 +104,9 @@ public class Vector2D {
     public Vector2D copy() {
         return new Vector2D(this.x, this.y);
     }
+    /** Returns a vector rotated 90° counter-clockwise (perpendicular). */
+    public Vector2D perpendicular() {
+        return new Vector2D(-y, x);
+    }
 
 }

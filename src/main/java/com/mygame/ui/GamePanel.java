@@ -310,7 +310,7 @@ public class GamePanel extends JPanel {
         //g.drawString("Time: " + String.format("%.2f", world.getHudState().getGameTime()), 10, 20);
 
         long end = System.nanoTime();
-        System.out.println("RENDER took " + (end - start) / 1_000_000.0 + " ms");
+        //System.out.println("RENDER took " + (end - start) / 1_000_000.0 + " ms");
     }
     private Runnable onGameOver;
 

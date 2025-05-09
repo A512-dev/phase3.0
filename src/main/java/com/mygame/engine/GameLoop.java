@@ -68,7 +68,7 @@ public class GameLoop {
             // inside logic thread loop
             logicTicks++;
             if (System.currentTimeMillis() - printTimer >= 1000) {
-                System.out.println("LOGIC: " + logicTicks + " UPS");
+                //System.out.println("LOGIC: " + logicTicks + " UPS");
                 logicTicks = 0;
             }
         }, "LogicThread");
@@ -89,7 +89,7 @@ public class GameLoop {
             // inside render thread loop
             renderFrames++;
             if (System.currentTimeMillis() - printTimer >= 1000) {
-                System.out.println("RENDER: " + renderFrames + " FPS");
+                //System.out.println("RENDER: " + renderFrames + " FPS");
                 renderFrames = 0;
                 printTimer = System.currentTimeMillis();
             }
