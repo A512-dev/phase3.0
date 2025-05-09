@@ -26,4 +26,10 @@ public class HUDState {
     public void resetGameTime() {
         this.gameTime = 0;
     }
+    public void reset() {
+        totalPackets = 0;
+        lostPackets = 0;
+        coins = 0;
+        gameTime = 0;
+    }
 }

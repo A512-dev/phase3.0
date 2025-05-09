@@ -64,13 +64,25 @@
 //}
 package com.mygame.engine;
 
+import com.mygame.util.Database;
+
 public class TimeController {
     private double realTimeAccumulator = 0;
     private double targetTime = -1;
     private boolean paused = false;
-    private double timeMultiplier = 1.0;
+    private double timeMultiplier = Database.timeMultiplier;
     private boolean waitingToStart = true;
     private boolean frozen = true;
+    private static boolean firstStart = true;
+    public static boolean isFirstStart() {
+        return firstStart;
+    }
+
+    public static void setFirstStart(boolean firstStart) {
+        TimeController.firstStart = firstStart;
+    }
+
+
     public void toggleFrozen() {
         frozen = !frozen;
     }
@@ -90,9 +102,9 @@ public class TimeController {
         realTimeAccumulator += dt;
     }
 
-    public double getDeltaSeconds() {
+    public double getDeltaSeconds(double realDt) {
         if (waitingToStart || paused || frozen) return 0;
-        return dtForFrame() * timeMultiplier;
+        return realDt  * Database.timeMultiplier;
     }
 
     private double dtForFrame() {

@@ -30,7 +30,7 @@ public class Main {
     /** Called when the user clicks "Play" */
     private void startGame() {
         // Swap in the game panel
-        gamePanel = new GamePanel();
+        gamePanel = new GamePanel(this::restartLevel);
         gamePanel.setOnGameOver(() -> {
             SwingUtilities.invokeLater(() -> {
                 frame.setContentPane(new GameOverPanel(
@@ -51,7 +51,7 @@ public class Main {
     private void restartLevel() {
         gamePanel.stop();
         frame.getContentPane().removeAll();
-        gamePanel = new GamePanel();
+        gamePanel = new GamePanel(this::restartLevel);
         gamePanel.setOnGameOver(() -> {
             SwingUtilities.invokeLater(() -> {
                 frame.setContentPane(new GameOverPanel(

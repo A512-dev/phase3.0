@@ -7,11 +7,17 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.Hashtable;
 
 import com.mygame.engine.GameLoop;
 import com.mygame.engine.TimeController;
+import com.mygame.model.Connection;
+import com.mygame.model.Port;
 import com.mygame.model.World;
+import com.mygame.util.Database;
+import com.mygame.util.Vector2D;
 import com.mygame.view.WorldView;
 
 public class GamePanel extends JPanel {
@@ -25,11 +31,16 @@ public class GamePanel extends JPanel {
     private JPanel gameOverOverlay;
     private GameLoop gameLoop;
     private JButton resumeButton;
+    private JButton restartButton;
 
     private JSlider timeSlider;
+    private Port selectedPort = null;
+    private double maxWire = Database.MAX_WIRE_LENGTH; // limit maximum length
 
 
-    public GamePanel() {
+
+
+    public GamePanel(Runnable restartLevel) {
 //        setPreferredSize(new Dimension(800, 600));
 //        setDoubleBuffered(true);
 //        setFocusable(true);
@@ -37,7 +48,7 @@ public class GamePanel extends JPanel {
         this.world = new World();
         this.worldView = new WorldView();
         // Start logic & render threads at 60 UPS/FPS in GamePanel
-        gameLoop = new GameLoop(this, 120.0, 60.0);
+        gameLoop = new GameLoop(this, Database.ups, Database.fps);
         gameLoop.start();
 
         setLayout(new OverlayLayout(this)); // Overlay layout allows stacking
@@ -73,6 +84,8 @@ public class GamePanel extends JPanel {
                         tc.toggleFrozen();
                         tc.setTimeMultiplier(1.0);  // normal speed
                         System.out.println("⏯ Starting from zero");
+                        world.emitQueuedOnStart(world.getPackets());
+                        //tc.setFirstStart(true);
                     } else {
                         // ⏸️ Toggle freeze
                         tc.toggleFrozen();
@@ -81,8 +94,56 @@ public class GamePanel extends JPanel {
                 }
             }
         });
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                Vector2D mousePos = new Vector2D(e.getX(), e.getY());
+                System.out.println("Mouse="+mousePos.toString());
+                selectedPort = world.findPortAtPosition(mousePos);
+                if (selectedPort!=null)
+                    System.out.println("selectedPort:"+selectedPort.getPosition().toString());
+            }
 
-        // TODO: add key/mouse listeners here
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (selectedPort != null) {
+                    Vector2D mousePos = new Vector2D(e.getX(), e.getY());
+                    Port targetPort = world.findPortAtPosition(mousePos);
+
+//                    if (targetPort != null) {
+//                        double dist = selectedPort.getPosition().distanceTo(targetPort.getPosition());
+//                        if (dist <= maxWire) {
+//                            // Connect ports
+//                            selectedPort.setConnectedPort(targetPort);
+//                            targetPort.setConnectedPort(selectedPort);
+//
+//                            world.addConnection(new Connection(selectedPort, targetPort));
+//                        } else {
+//                            JOptionPane.showMessageDialog(null, "Wire too long!");
+//                        }
+//                    }
+                    if (targetPort != null && targetPort.getCenter() != selectedPort.getCenter() &&
+                            targetPort.getDirection() != selectedPort.getDirection()) {
+
+                        double dist = selectedPort.getPosition().distanceTo(targetPort.getPosition());
+                        if (dist <= maxWire) {
+                            // Connect ports
+                            selectedPort.setConnectedPort(targetPort);
+                            targetPort.setConnectedPort(selectedPort);
+
+                            world.addConnection(new Connection(selectedPort, targetPort));
+                            maxWire -= dist;
+                        } else {
+                            JOptionPane.showMessageDialog(null, "Wire too long!");
+                        }
+                    }
+                    selectedPort = null;
+                }
+            }
+        });
+
+        //resume Button and it's listeners
+        {
         SwingUtilities.invokeLater(this::requestFocusInWindow);
         resumeButton = new JButton("Resume");
         resumeButton.setFocusable(false);
@@ -102,10 +163,19 @@ public class GamePanel extends JPanel {
         setLayout(null);  // we will position it manually
         add(resumeButton);
         SwingUtilities.invokeLater(this::requestFocusInWindow);
-
-
-        timeSlider = new JSlider(0, 9, 0); // range 0 to 30 seconds
-        timeSlider.setMajorTickSpacing(3); // spacing between ticks
+        }
+        //restart button and it's listeners
+        {
+            restartButton = new JButton("Restart");
+            restartButton.setFocusable(false);
+            restartButton.setVisible(false);
+            restartButton.addActionListener(e -> restartLevel.run());
+            add(restartButton);
+        }
+        //Time Slider and it's listeners
+        {
+        timeSlider = new JSlider(0, 30, 0); // range 0 to 30 seconds
+        timeSlider.setMajorTickSpacing(10); // spacing between ticks
         timeSlider.setPaintTicks(true);
         timeSlider.setPaintLabels(true);
         timeSlider.setFocusable(false);
@@ -114,9 +184,9 @@ public class GamePanel extends JPanel {
         // Optional: precise labels (cleaner than auto-generated)
         Hashtable<Integer, JLabel> labelTable = new Hashtable<>();
         labelTable.put(0, new JLabel("0s"));
-        labelTable.put(3, new JLabel("3s"));
-        labelTable.put(6, new JLabel("6s"));
-        labelTable.put(9, new JLabel("9s"));
+        labelTable.put(10, new JLabel("10s"));
+        labelTable.put(20, new JLabel("20s"));
+        labelTable.put(30, new JLabel("30s"));
         timeSlider.setLabelTable(labelTable);
 
         timeSlider.setBounds(10, getHeight() - 40, 300, 30);
@@ -128,9 +198,18 @@ public class GamePanel extends JPanel {
                 world.resetToSnapshot(world.getInitialState());
                 world.getHudState().resetGameTime();
                 if (target > 0) {
-                    world.getTimeController().setTimeMultiplier(8);
+//                    world.resetDynamic();
+//                    world.getHudState().resetGameTime();  // redundant if resetDynamic does it
+//                    world.getTimeController().setTimeMultiplier(8);
+//                    world.getTimeController().jumpTo(target);
+//                    if (world.getTimeController().isFrozen())
+//                        world.getTimeController().toggleFrozen();
+                    world.getTimeController().setTimeMultiplier(30);
+                    Database.timeMultiplier = 30;
                     world.getTimeController().jumpTo(target);
-                    world.getTimeController().startFromFreeze();  // allow sim to run
+                    if (world.getTimeController().isFrozen())
+                        world.getTimeController().toggleFrozen();
+                    //world.getTimeController().startFromFreeze();  // allow sim to run
                 } else {
                     // Reset and freeze at t=0
                     world.getTimeController().waitToStart();
@@ -155,18 +234,20 @@ public class GamePanel extends JPanel {
         add(timeSlider);
         setFocusable(true);
         SwingUtilities.invokeLater(this::requestFocusInWindow);
-
+    }
+        setDoubleBuffered(true);
     }
 
     /**
      * Called by GameLoop once per logic tick.
      */
     public void updateLogic(double dt) {
-        world.getTimeController().updateRealTime(dt);
-        double simDt = world.getTimeController().getDeltaSeconds();
-        if (simDt > 0) {
-            world.updateAll(simDt);
-        }
+        world.updateAll(dt);
+//        world.getTimeController().updateRealTime(dt);
+//        double simDt = world.getTimeController().getDeltaSeconds();
+//        if (simDt > 0) {
+//            world.updateAll(simDt);
+//        }
     }
     public void stop() {
         if (gameLoop != null) gameLoop.stop();
@@ -175,6 +256,7 @@ public class GamePanel extends JPanel {
 
     @Override
     protected void paintComponent(Graphics g) {
+        long start = System.nanoTime();
         super.paintComponent(g);
 //        if (world.isGameOver()) {
 //            SwingUtilities.invokeLater(() -> {
@@ -186,6 +268,7 @@ public class GamePanel extends JPanel {
 //                frame.revalidate();
 //            });
 //        }
+
 
         worldView.renderAll((Graphics2D) g, world);
         if (world.isGameOver() && onGameOver != null) {
@@ -212,14 +295,22 @@ public class GamePanel extends JPanel {
 
             resumeButton.setBounds(x, y, buttonWidth, buttonHeight);
             resumeButton.setVisible(true);
+            int bx = getWidth()/2 - buttonWidth/2;
+            int by = getHeight()/2 + buttonHeight + 20;
+            restartButton.setBounds(bx, by, buttonWidth, buttonHeight);
+            restartButton.setVisible(true);
+
         } else {
             resumeButton.setVisible(false);
+            restartButton.setVisible(false);
         }
 
         timeSlider.setVisible(true);
         timeSlider.setBounds(getWidth() / 2 - 150, getHeight() - 50, 300, 30);
-        g.drawString("Time: " + String.format("%.2f", world.getHudState().getGameTime()), 10, 20);
+        //g.drawString("Time: " + String.format("%.2f", world.getHudState().getGameTime()), 10, 20);
 
+        long end = System.nanoTime();
+        System.out.println("RENDER took " + (end - start) / 1_000_000.0 + " ms");
     }
     private Runnable onGameOver;
 

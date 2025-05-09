@@ -9,6 +9,10 @@ public class GameLoop {
 
     private Thread logicThread;
     private Thread renderThread;
+    int logicTicks = 0;
+    int renderFrames = 0;
+    long printTimer = System.currentTimeMillis();
+
     private volatile boolean running = false;
 
     /**
@@ -43,7 +47,7 @@ public class GameLoop {
                     double realDt = elapsed / 1_000_000_000.0;
 
                     panel.getWorld().getTimeController().updateRealTime(realDt);
-                    double gameDt = panel.getWorld().getTimeController().getDeltaSeconds();
+                    double gameDt = panel.getWorld().getTimeController().getDeltaSeconds(realDt);
 
                     if (gameDt > 0) {
                         panel.updateLogic(gameDt);
@@ -61,6 +65,12 @@ public class GameLoop {
                     } catch (InterruptedException ignored) {}
                 }
             }
+            // inside logic thread loop
+            logicTicks++;
+            if (System.currentTimeMillis() - printTimer >= 1000) {
+                System.out.println("LOGIC: " + logicTicks + " UPS");
+                logicTicks = 0;
+            }
         }, "LogicThread");
 
         // Render Thread
@@ -69,12 +79,19 @@ public class GameLoop {
             final long sleepMillis = (long)(1000.0 / fps);
             while (running) {
                 z++;
-                if (z%60==0)
-                    System.out.println("hud="+panel.getWorld().getHudState().getGameTime()+" Target="+panel.getWorld().getTimeController().getTargetTime());
+                //if (z%60==0)
+                    //System.out.println("hud="+panel.getWorld().getHudState().getGameTime()+" Target="+panel.getWorld().getTimeController().getTargetTime());
                 SwingUtilities.invokeLater(panel::repaint);
                 try {
                     Thread.sleep(sleepMillis);
                 } catch (InterruptedException ignored) {}
+            }
+            // inside render thread loop
+            renderFrames++;
+            if (System.currentTimeMillis() - printTimer >= 1000) {
+                System.out.println("RENDER: " + renderFrames + " FPS");
+                renderFrames = 0;
+                printTimer = System.currentTimeMillis();
             }
         }, "RenderThread");
 

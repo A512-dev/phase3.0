@@ -13,6 +13,7 @@ public class TrianglePacket extends Packet {
     protected void onUpdate(double dt) {
         Vector2D acceleration = velocity.normalized().multiplied(accel * dt);
         velocity.add(acceleration);
+        System.out.println();
     }
 
     @Override

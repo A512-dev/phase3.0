@@ -24,6 +24,7 @@ public class CollisionManager {
         // For each packet, only check neighbors
         for (Packet a : packets) {
             if (!a.isAlive()) continue;
+            if (!a.isMobile()) continue;
             Vector2D posA = a.getPosition();
 
             for (int dx = -1; dx <= 1; dx++) {
@@ -32,7 +33,7 @@ public class CollisionManager {
                     List<Packet> nearby = grid.getOrDefault(neighborKey, Collections.emptyList());
 
                     for (Packet b : nearby) {
-                        if (a == b || !b.isAlive() || checked.contains(b)) continue;
+                        if (a == b || !b.isAlive() || checked.contains(b) || !b.isMobile()) continue;
 
                         double distance = a.getPosition().distanceTo(b.getPosition());
                         double combined = a.getSize() / 2 + b.getSize() / 2;

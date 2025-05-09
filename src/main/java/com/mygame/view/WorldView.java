@@ -16,6 +16,7 @@ public class WorldView {
     private final HUDView        hudView        = new HUDView();
 
     public void renderAll(Graphics2D g, World world) {
+        long start = System.nanoTime();
         for (Connection c : world.getConnections()) {
             connectionView.render(g, c);
         }
@@ -24,12 +25,17 @@ public class WorldView {
         }
         List<Packet> packets = new ArrayList<>(world.getPackets());
         for (Packet p : packets) {
+            long pstart = System.nanoTime();
             packetView.render(g, p);
+            long pend = System.nanoTime();
+            System.out.println("Packet render took: " + (pend - pstart) / 1_000_000.0 + " ms");
         }
 
 //        for (Packet p : world.getPackets()) {
 //            packetView.render(g, p);
 //        }
         hudView.render(g, world.getHudState());
+        long end = System.nanoTime();
+        System.out.println("RENDER ALL took: " + (end - start) / 1_000_000.0 + " ms");
     }
 }

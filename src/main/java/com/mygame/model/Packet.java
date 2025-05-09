@@ -14,7 +14,7 @@ public abstract class Packet {
     protected double impulseDecay = 3.0;  // units per second
     protected Vector2D pathStart;
     protected Vector2D pathEnd;
-
+    protected boolean mobile = false;
 
 
 
@@ -30,9 +30,24 @@ public abstract class Packet {
         this.pathStart = pos;
         this.pathEnd = pos.added(vel.normalized().multiplied(500));  // assume forward path
     }
+
+
+
+    public void setMobile(boolean isMobile) {
+        this.mobile = isMobile;
+    }
+
+    public boolean isMobile() {
+        return mobile;
+    }
+
+
+
     public void setPath(Vector2D start, Vector2D end) {
         this.pathStart = start;
         this.pathEnd = end;
+        position = start;
+        this.baseVelocity = new Vector2D(end.x - start.x, end.y - start.y).normalized().multiplied(30);
     }
 
 
@@ -60,6 +75,9 @@ public abstract class Packet {
     public boolean isAlive() {
         return life > 0;
     }
+    public void setUnAlive() {
+       life = 0;
+    }
 
     public Vector2D getPosition() { return position; }
     public Vector2D getVelocity() { return velocity; }
@@ -85,8 +103,8 @@ public abstract class Packet {
         double t = ap.dot(ab) / ab.lengthSq();
         t = Math.max(0, Math.min(1, t));  // clamp to segment
         Vector2D closest = a.added(ab.multiplied(t));
-
         return p.distanceTo(closest);
+
     }
     public float getOpacity() {
         return Math.max(0.2f, (float) life / getMaxLife());
