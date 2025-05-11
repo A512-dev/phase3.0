@@ -115,6 +115,7 @@ public class World {
         for (Connection c : connections) {
             SystemNode fromNode = c.getFrom().getOwner();
             SystemNode toNode   = c.getTo()  .getOwner();
+            hud.setLostPackets(0);
 
             int fn = nodes.indexOf(fromNode);
             int tn = nodes.indexOf(toNode);
@@ -216,12 +217,9 @@ public class World {
 //            System.out.println("pathEnd="+p.getPathEnd());
 //            System.out.println("pathStart="+p.getPathStart());
             if (!p.isAlive() || p.isOffTrackLine(Database.maxDistanceToBeOfTheLine)) {
-                //p.setUnAlive();
-                System.out.println("alive" + p.isAlive());
-                System.out.println(p.getPathStart().toString());
-                System.out.println(p.getPathEnd().toString());
-                System.out.println(p.distanceToSegment(p.getPosition(), p.getPathStart(), p.getPathEnd()));
-                System.out.println("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm");
+                System.out.printf("LOST @ t=%.3f  Δt overshoot=%.3f  dist=%.2f  threshold=%d%n",
+                        hud.getGameTime(), dt, p.distanceToSegment(p.getPosition(), p.getPathStart(), p.getPathEnd()), Database.maxDistanceToBeOfTheLine);
+                System.out.println();
                 hud.incrementLostPackets();
                 System.out.println(hud.getLostPackets());
             } else {

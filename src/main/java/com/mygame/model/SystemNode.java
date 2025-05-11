@@ -43,9 +43,9 @@ public class SystemNode {
         while (it.hasNext()) {
             Packet pkt = it.next();
             for (Port out : outputPorts) {
-                System.out.println("index:"+outputPorts.indexOf(out));
-                System.out.println("busy:"+out.isBusy());
-                System.out.println("connected:"+out.getConnectedPort());
+//                System.out.println("index:"+outputPorts.indexOf(out));
+//                System.out.println("busy:"+out.isBusy());
+//                System.out.println("connected:"+out.getConnectedPort());
                 if (!out.isBusy() && out.getConnectedPort() != null) {
                     // a) mark packet mobile and set its new path
                     pkt.setMobile(true);
