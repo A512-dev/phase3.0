@@ -194,12 +194,12 @@ public class GamePanel extends JPanel {
         timeSlider.setBounds(10, getHeight() - 40, 300, 30);
         timeSlider.setFocusable(true);
         timeSlider.addChangeListener(e -> {
-            System.out.println("slider movenewjwfwefkwfwfkwefwefl");
             if (!timeSlider.getValueIsAdjusting()) {
                 double target = timeSlider.getValue();
                 world.resetToSnapshot(world.getInitialState());
                 world.getHudState().resetGameTime();
                 if (target > 0) {
+                    world.setViewOnlyMode(true);  // 🔁 This suppresses GameOver
 //                    world.resetDynamic();
 //                    world.getHudState().resetGameTime();  // redundant if resetDynamic does it
 //                    world.getTimeController().setTimeMultiplier(8);
@@ -211,9 +211,7 @@ public class GamePanel extends JPanel {
                     world.getTimeController().jumpTo(target);
                     // 4) Un‐freeze so the nodes.update() actually runs
                     world.getTimeController().startFromFreeze();
-//                    if (world.getTimeController().isFrozen())
-//                        world.getTimeController().toggleFrozen();
-                    //world.getTimeController().startFromFreeze();  // allow sim to run
+
                 } else {
                     // Reset and freeze at t=0
                     world.getTimeController().waitToStart();
@@ -247,6 +245,16 @@ public class GamePanel extends JPanel {
      * Called by GameLoop once per logic tick.
      */
     public void updateLogic(double dt) {
+        double target = world.getTimeController().getTargetTime();
+        // if we’re in a jump, only simulate up to that moment
+        if (target >= 0) {
+            double timeLeft = target - world.getHudState().getGameTime();
+            if (timeLeft <= 0) {
+                // we’ve already reached or passed it—nothing more to do
+                return;
+            }
+            dt = Math.min(dt, timeLeft);
+        }
         world.updateAll(dt);
 //        world.getTimeController().updateRealTime(dt);
 //        double simDt = world.getTimeController().getDeltaSeconds();
@@ -276,7 +284,20 @@ public class GamePanel extends JPanel {
 
 
         worldView.renderAll((Graphics2D) g, world);
-        if (world.isGameOver() && onGameOver != null) {
+        // in paintComponent (when game is over)
+        if (world.isGameOver()) {
+            g.setColor(new Color(255, 0, 0, 100));  // semi-transparent red
+            g.fillRect(0, 0, getWidth(), getHeight());
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.BOLD, 22));
+            g.drawString("GAME OVER — You can still review the timeline.", getWidth()/2 - 200, 40);
+        }
+        if (world.isViewOnlyMode()) {
+            g.setColor(Color.ORANGE);
+            g.setFont(new Font("Arial", Font.BOLD, 16));
+            g.drawString("Reviewing Timeline — Simulation Paused", 10, getHeight() - 10);
+        }
+        if (world.isGameOver() && onGameOver != null && !world.isViewOnlyMode()) {
             onGameOver.run();  // Tell the main app to switch to GameOverPanel
         }
         if (world.getTimeController().isPaused()) {
