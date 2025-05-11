@@ -16,13 +16,14 @@ public class WorldView {
     private final HUDView        hudView        = new HUDView();
 
     public void renderAll(Graphics2D g, World world) {
+        for (SystemNode n : world.getNodes()) {
+            systemNodeView.render(g, n);
+        }
         long start = System.nanoTime();
         for (Connection c : world.getConnections()) {
             connectionView.render(g, c);
         }
-        for (SystemNode n : world.getNodes()) {
-            systemNodeView.render(g, n);
-        }
+
         List<Packet> packets = new ArrayList<>(world.getPackets());
         for (Packet p : packets) {
             long pstart = System.nanoTime();

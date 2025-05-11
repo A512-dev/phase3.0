@@ -22,13 +22,16 @@ public class Port {
     private double busyTimer = 0;
 
     public void updateBusyTimer(double dt, double busyDuration) {
-        if (busy) {
-            busyTimer += dt;
-            if (busyTimer >= busyDuration) {
-                busy = false;
-                busyTimer = 0;
-            }
-        }
+//        if (busy) {
+//            busyTimer += dt;
+//            if (busyTimer >= busyDuration) {
+//                busy = false;
+//                busyTimer = 0;
+//            }
+//        }
+//        else
+//            busyTimer = 0;
+        busyTimer = Math.max(0, busyTimer - dt);
     }
 
     private Port connectedPort;
@@ -49,8 +52,8 @@ public class Port {
         this.direction = direction;
         this.position = position;
     }
-    public boolean isBusy() { return busy; }
-    public void setBusy(boolean b) { busy = b; }
+    public boolean isBusy() { return busyTimer>0; }
+    public void setBusy() { busyTimer = Database.timeSendFromPort; }  // 3.0 seconds
 
 
     public Vector2D getPosition() {

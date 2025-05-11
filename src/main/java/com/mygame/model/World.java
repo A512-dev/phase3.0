@@ -6,6 +6,7 @@ import com.mygame.util.Database;
 import com.mygame.util.Vector2D;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.mygame.model.Port.PortType;
@@ -13,6 +14,9 @@ import com.mygame.model.Port.PortType;
 import static com.mygame.util.Database.PORT_SIZE;
 
 public class World {
+    private boolean viewOnlyMode = false;
+    public boolean isViewOnlyMode() { return viewOnlyMode; }
+    public void setViewOnlyMode(boolean mode) { viewOnlyMode = mode; }
 
 
     public void setGameOver(boolean gameOver) {
@@ -94,22 +98,54 @@ public class World {
 //        }
         createTestLevel1();
         captureDynamicInitial();
-        this.initialState = takeSnapshot();  // capture t = 0
+        this.initialState = takeSnapshot();
     }
+    // somewhere in your World.java (or as a top-level class)
+
+
     public WorldSnapshot takeSnapshot() {
+        // next record *which* port-pairs were connected in the *current* world:
+
         return new WorldSnapshot(
-                packets.stream().map(Packet::copy).collect(Collectors.toList()),
-                nodes.stream().map(SystemNode::copy).collect(Collectors.toList()),
-                connections.stream().map(Connection::copy).collect(Collectors.toList())
-        );
+                nodes.stream().map(SystemNode::copy).collect(Collectors.toList()));
     }
 
     public void resetToSnapshot(WorldSnapshot snapshot) {
-        packets.clear();
-        packets.addAll(snapshot.packets.stream().map(Packet::copy).collect(Collectors.toList()));
+        List<ConnectionRecord> connRecs = new ArrayList<>();
+        for (Connection c : connections) {
+            SystemNode fromNode = c.getFrom().getOwner();
+            SystemNode toNode   = c.getTo()  .getOwner();
 
+            int fn = nodes.indexOf(fromNode);
+            int tn = nodes.indexOf(toNode);
+            int fp = fromNode.getPorts().indexOf(c.getFrom());
+            int tp = toNode  .getPorts().indexOf(c.getTo());
+
+            connRecs.add(new ConnectionRecord(fn,fp, tn,tp));
+        }
+        packets.clear();
+//        packets.addAll(snapshot.packets.stream().map(Packet::copy).collect(Collectors.toList()));
+//
         nodes.clear();
         nodes.addAll(snapshot.nodes.stream().map(SystemNode::copy).collect(Collectors.toList()));
+        // 2) now clear & rebuild your connection objects
+        this.connections.clear();
+        for (ConnectionRecord r : connRecs) {
+            SystemNode fn = this.nodes.get(r.fromNodeIndex);
+            SystemNode tn = this.nodes.get(r.toNodeIndex);
+
+            Port fromPort = fn.getPorts().get(r.fromPortIndex);
+            Port   toPort = tn.getPorts().get(r.toPortIndex);
+
+            // re-link the two Ports...
+            fromPort.setConnectedPort(toPort);
+            toPort  .setConnectedPort(fromPort);
+
+            // ...and recreate the Connection for rendering/logic
+            this.connections.add(new Connection(fromPort, toPort));
+        }
+        //System.out.println(Arrays.toString(initialState.nodes.get(1).getPorts().toArray()));// capture t = 0
+
 
 //        connections.clear();
 //        connections.addAll(snapshot.connections.stream().map(Connection::copy).collect(Collectors.toList()));
@@ -156,15 +192,35 @@ public class World {
         // 3) NOW cull off-track & dead packets immediately
         List<Packet> stillAlive = new ArrayList<>();
         //System.out.println(packets.size());
-        for (int i=0; i<packets.size(); i++) {
-            Packet p = packets.get(i);
-            System.out.println(i+"distanceToLine"+p.distanceToSegment(p.getPosition(), p.getPathStart(), p.getPathEnd()));
-            System.out.println("Position"+p.getPosition());
-            System.out.println("pathEnd="+p.getPathEnd());
-            System.out.println("pathStart="+p.getPathStart());
+        for (Packet p : packets) {
+            if (p.hasArrived()) {
+                // find the node whose input port is at this pathEnd
+                for (SystemNode node : nodes) {
+                    for (Port in : node.getInputs()) {
+
+                        if (in.getCenter().distanceTo(p.getPathEnd()) < 1e-6) {
+                            if (node == nodes.get(0)) {
+                                hud.incrementSuccessful();
+                            } else {
+                                p.setMobile(false);
+                                node.enqueuePacket(p);
+                            }
+
+                        }
+                    }
+                }
+                continue;  // do not add to stillAlive, do NOT lost++
+            }
+//            System.out.println(i+"distanceToLine"+p.distanceToSegment(p.getPosition(), p.getPathStart(), p.getPathEnd()));
+//            System.out.println("Position"+p.getPosition());
+//            System.out.println("pathEnd="+p.getPathEnd());
+//            System.out.println("pathStart="+p.getPathStart());
             if (!p.isAlive() || p.isOffTrackLine(Database.maxDistanceToBeOfTheLine)) {
-                packets.remove(i);
                 //p.setUnAlive();
+                System.out.println("alive" + p.isAlive());
+                System.out.println(p.getPathStart().toString());
+                System.out.println(p.getPathEnd().toString());
+                System.out.println(p.distanceToSegment(p.getPosition(), p.getPathStart(), p.getPathEnd()));
                 System.out.println("mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm");
                 hud.incrementLostPackets();
                 System.out.println(hud.getLostPackets());
@@ -177,8 +233,8 @@ public class World {
         packets.clear();
         packets.addAll(stillAlive);
 
-        hud.setGameTime(hud.getGameTime() + dt);
-        if (hud.getPacketLossRatio() > 0.5)
+
+        if (hud.getPacketLossRatio() > 0.5 && !viewOnlyMode)
             gameOver = true;
         for (SystemNode node : nodes) {
             node.update(dt, packets);
@@ -186,12 +242,15 @@ public class World {
         if (timeController.getTargetTime() >= 0 &&
                 hud.getGameTime() >= timeController.getTargetTime()) {
             System.out.println("Reached Target");
+            System.out.println("packets:"+getPackets().toString());
+            System.out.println(getNodes().get(0).getQueuedPackets().toString());
             hud.setGameTime(timeController.getTargetTime());
             timeController.stopJump();
             timeController.setTimeMultiplier(1.0);
             Database.timeMultiplier = 1;
             timeController.waitToStart();
         }
+        hud.setGameTime(hud.getGameTime() + dt);
         long end = System.nanoTime();
         //System.out.println("World.updateAll took " + (end - start) / 1_000_000.0 + " ms");
     }
@@ -222,6 +281,11 @@ public class World {
                 baseLeft.getHeight()/3));
         baseLeft.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - PORT_SIZE/2,
                 2*baseLeft.getHeight()/3));
+        // **NEW**: add the “loopback” input on baseLeft
+        baseLeft.addInputPort(
+                PortType.SQUARE,
+                new Vector2D(-Database.PORT_SIZE/2, baseLeft.getHeight()*0.5)
+        );
         nodes.add(baseLeft);
 
         // Intermediate Node 1
@@ -317,27 +381,7 @@ public class World {
         // restore time
         hud.setGameTime(0);
     }
-    public void emitQueuedOnStart(List<Packet> worldPackets) {
-        for (SystemNode node : nodes) {
-            // directly call the same logic as above,
-            // but ignore the timer – just fire all possible ports once:
-            for (Port outPort : node.getOutputs()) {
-                if (!outPort.isBusy()
-                        && outPort.getConnectedPort() != null
-                        && !node.getQueuedPackets().isEmpty()) {
-                    Packet p = node.getQueuedPackets().poll();
-                    p.setMobile(true);
-                    p.position = outPort.getCenter();
-                    p.setPath(
-                            outPort.getCenter(),
-                            outPort.getConnectedPort().getCenter()
-                    );
-                    worldPackets.add(p);
-                    outPort.setBusy(true);
-                }
-            }
-        }
-    }
+
 
 
 //    public Port findNearestFreePort(Vector2D pos) {

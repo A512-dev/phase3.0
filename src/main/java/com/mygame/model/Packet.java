@@ -1,5 +1,6 @@
 package com.mygame.model;
 
+import com.mygame.util.Database;
 import com.mygame.util.Vector2D;
 import java.awt.Graphics2D;
 
@@ -117,6 +118,10 @@ public abstract class Packet {
         // Distance from point p to line segment ab
         double dist = distanceToSegment(p, a, b);
         return dist > maxDistanceToBeOfTheLine;
+    }
+    /** Returns true if this packet has reached (or passed) its pathEnd. */
+    public boolean hasArrived() {
+        return position.distanceTo(pathEnd) <= Database.THRESHOLD_FOR_REACHING_PORT;
     }
 
 

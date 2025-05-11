@@ -84,7 +84,9 @@ public class GamePanel extends JPanel {
                         tc.toggleFrozen();
                         tc.setTimeMultiplier(1.0);  // normal speed
                         System.out.println("⏯ Starting from zero");
-                        world.emitQueuedOnStart(world.getPackets());
+                        // Trigger a forced update to emit packets from base nodes
+                        //world.updateAll(1.0*Database.timeMultiplier / Database.ups);  // Run 1 logic tick immediately
+                        //world.getNodes().get(0).emitQueued(world.getPackets());
                         //tc.setFirstStart(true);
                     } else {
                         // ⏸️ Toggle freeze
@@ -207,13 +209,16 @@ public class GamePanel extends JPanel {
                     world.getTimeController().setTimeMultiplier(30);
                     Database.timeMultiplier = 30;
                     world.getTimeController().jumpTo(target);
-                    if (world.getTimeController().isFrozen())
-                        world.getTimeController().toggleFrozen();
+                    // 4) Un‐freeze so the nodes.update() actually runs
+                    world.getTimeController().startFromFreeze();
+//                    if (world.getTimeController().isFrozen())
+//                        world.getTimeController().toggleFrozen();
                     //world.getTimeController().startFromFreeze();  // allow sim to run
                 } else {
                     // Reset and freeze at t=0
                     world.getTimeController().waitToStart();
                 }
+                repaint();
 
                 requestFocusInWindow();  // regain key focus after slider interaction
             }

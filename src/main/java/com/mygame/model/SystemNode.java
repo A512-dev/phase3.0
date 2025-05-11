@@ -4,10 +4,7 @@ import com.mygame.engine.TimeController;
 import com.mygame.util.Database;
 import com.mygame.util.Vector2D;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 public class SystemNode {
     private double x, y, width, height;
@@ -18,10 +15,14 @@ public class SystemNode {
         return packetQueue;
     }
 
+    public void setPacketQueue(Queue<Packet> packetQueue) {
+        this.packetQueue = packetQueue;
+    }
+
     private Queue<Packet> packetQueue = new LinkedList<>();
     private final int MAX_QUEUE_SIZE = 5;
     private final int timeSendFromPort = Database.timeSendFromPort; // seconds
-    private double timer = 0;
+    //private double timer = 0;
 
 
     public SystemNode(double x, double y) {
@@ -31,31 +32,59 @@ public class SystemNode {
         this.height = Database.lengthNodes;
     }
     public void update(double dt, List<Packet> worldPackets) {
-        timer += dt;
+        //System.out.println("jdfvjvjerjegjergjegjergj");
+        //timer += dt;
         // First, update port busy-timers clearly
         for (Port port : outputPorts) {
             port.updateBusyTimer(dt, timeSendFromPort);
         }
-
-        if (timer >= timeSendFromPort) {
-            TimeController.setFirstStart(false);
-            //timer -= timeSendFromPort;
-            timer %= timeSendFromPort;
-            // try each port in turn
-            for (Port outPort : outputPorts) {
-                if (!outPort.isBusy() && outPort.getConnectedPort() != null && !packetQueue.isEmpty()) {
-                    Packet packet = packetQueue.poll();
-                    // mark it mobile & set its path
-                    worldPackets.add(packet);
-                    packet.setMobile(true);
-                    packet.position = outPort.getCenter();
-                    packet.setPath(
-                            outPort.getCenter(),
-                            outPort.getConnectedPort().getCenter()
+        // 2) Try to send *as many* queued packets as there are free ports
+        Iterator<Packet> it = packetQueue.iterator();
+        while (it.hasNext()) {
+            Packet pkt = it.next();
+            for (Port out : outputPorts) {
+                System.out.println("index:"+outputPorts.indexOf(out));
+                System.out.println("busy:"+out.isBusy());
+                System.out.println("connected:"+out.getConnectedPort());
+                if (!out.isBusy() && out.getConnectedPort() != null) {
+                    // a) mark packet mobile and set its new path
+                    pkt.setMobile(true);
+                    pkt.position = out.getCenter();
+                    pkt.setPath(
+                            out.getCenter(),
+                            out.getConnectedPort().getCenter()
                     );
-                    outPort.setBusy(true);
+                    // b) enqueue it into the world
+                    worldPackets.add(pkt);
+                    // c) put THIS port on cooldown for 3 s
+                    out.setBusy();
+                    // d) remove from node queue
+                    it.remove();
+                    break;  // move on to next queued packet
                 }
             }
+        }
+//        // try each port in turn
+//        for (Port outPort : outputPorts) {
+//            if (!outPort.isBusy() && outPort.getConnectedPort() != null && !packetQueue.isEmpty()) {
+//                Packet packet = packetQueue.poll();
+//                // mark it mobile & set its path
+//                worldPackets.add(packet);
+//                packet.setMobile(true);
+//                packet.position = outPort.getCenter();
+//                packet.setPath(
+//                        outPort.getCenter(),
+//                        outPort.getConnectedPort().getCenter()
+//                );
+//                outPort.setBusy();
+//            }
+//        }
+
+//        if (timer >= timeSendFromPort) {
+//            TimeController.setFirstStart(false);
+//            //timer -= timeSendFromPort;
+//            timer -= timeSendFromPort;
+
 
 //            if (!packetQueue.isEmpty()) {
 //                Packet packet = packetQueue.poll();
@@ -79,7 +108,6 @@ public class SystemNode {
 //
 //            }
         }
-    }
     public void enqueuePacket(Packet packet) {
         if (packetQueue.size() < MAX_QUEUE_SIZE) {
             packetQueue.offer(packet);
@@ -120,11 +148,21 @@ public class SystemNode {
         SystemNode clone = new SystemNode(getX(), getY());
         // Copy ports
         for (Port port : getInputs()) {
-            clone.addInputPort(port.getType(), port.getPosition());
+            clone.addInputPort(port.getType(), port.getPosition().subtracted(new Vector2D(x, y)));
         }
         for (Port port : getOutputs()) {
-            clone.addOutputPort(port.getType(), port.getPosition());
+            clone.addOutputPort(port.getType(), port.getPosition().subtracted(new Vector2D(x, y)));
         }
+        // DEEP-COPY the queued packets
+        Queue<Packet> newQueue = new LinkedList<>();
+        for (Packet p : getQueuedPackets()) {
+            Packet pCopy = p.copy();
+            pCopy.setMobile(false);          // preserve “queued” state
+            // you may also need to preserve whatever pathStart/pathEnd they had
+            newQueue.offer(pCopy);
+        }
+        clone.setPacketQueue(newQueue);
+
 
         return clone;
     }
@@ -139,4 +177,22 @@ public class SystemNode {
         return allConnected;
 
     }
+//    public void emitQueued(List<Packet> worldPackets) {
+//        // but ignore the timer – just fire all possible ports once:
+//        for (Port outPort : getOutputs()) {
+//            if (!outPort.isBusy()
+//                    && outPort.getConnectedPort() != null
+//                    && !getQueuedPackets().isEmpty()) {
+//                Packet p = getQueuedPackets().poll();
+//                p.setMobile(true);
+//                p.position = outPort.getCenter();
+//                p.setPath(
+//                        outPort.getCenter(),
+//                        outPort.getConnectedPort().getCenter()
+//                );
+//                worldPackets.add(p);
+//                outPort.setBusy();
+//            }
+//        }
+//    }
 }

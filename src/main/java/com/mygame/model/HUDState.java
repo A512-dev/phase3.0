@@ -6,6 +6,9 @@ public class HUDState {
     private double gameTime = 0;
     private int lostPackets = 0;
     private int totalPackets = 0;
+    private int successfulPackets = 0;
+    public void incrementSuccessful() { successfulPackets++; }
+    public int getSuccessful() { return successfulPackets; }
 
     public int getTotalPackets() { return totalPackets; }
     public void incrementTotalPackets() { totalPackets++; }

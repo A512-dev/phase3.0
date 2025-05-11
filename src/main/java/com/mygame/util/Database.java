@@ -9,6 +9,7 @@ public class Database {
     public static final double PORT_CLICK_RADIUS = 8.0; // Radius of clickable area
     public static final Vector2D baseVelocityOfPackets = new Vector2D(30, 0);
     public static final double ups=120, fps=60;
+    public static final double THRESHOLD_FOR_REACHING_PORT = 3;
     public static double timeMultiplier = 1.0;
     public static final int timeSendFromPort = (int) (3); // seconds
 
