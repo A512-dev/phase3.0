@@ -3,6 +3,7 @@ package com.mygame;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
+import com.mygame.audio.AudioManager;
 import com.mygame.model.World;
 import com.mygame.ui.GameOverPanel;
 import com.mygame.ui.GamePanel;
@@ -25,6 +26,8 @@ public class Main {
         mainMenu = new MainMenu(this::startGame, this::openSettings);
         frame.setContentPane(mainMenu);
         frame.setVisible(true);
+        /* 🔊 start BG music on first play */
+        AudioManager.get().loopMusic("pacman background music");
     }
 
     /** Called when the user clicks "Play" */
@@ -64,6 +67,8 @@ public class Main {
         });
         frame.setContentPane(gamePanel);
         frame.revalidate();
+        /* 🔊 start BG music on first play */
+        //AudioManager.get().loopMusic("bg_loop");
     }
 
 

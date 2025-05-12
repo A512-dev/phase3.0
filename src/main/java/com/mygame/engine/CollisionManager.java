@@ -1,17 +1,26 @@
 package com.mygame.engine;
 
+import com.mygame.audio.AudioManager;
+import com.mygame.model.HUDState;
 import com.mygame.model.Packet;
+import com.mygame.model.World;
+import com.mygame.model.powerups.PowerUpType;
 import com.mygame.util.Database;
 import com.mygame.util.Vector2D;
 
 import java.util.*;
 
 public class CollisionManager {
-    private final double CELL_SIZE = 50;
-    private final double IMPACT_RADIUS = 60;
-    private final double IMPULSE_FORCE = 150;
-
+    private final double CELL_SIZE = Database.CELL_SIZE;
+    private final double IMPACT_RADIUS = Database.IMPACT_RADIUS;
+    private final double impulseForce = Database.IMPULSE_FORCE;
+    private final World world;
+    public CollisionManager(World world) {
+        this.world = world;
+    }
     public void checkCollisions(List<Packet> packets) {
+        /* inside checkCollisions(…) right at the start */
+        if (world.isPowerUpActive(PowerUpType.O_AIRYAMAN)) return;   // skip all collisions
         Map<Long, List<Packet>> grid = new HashMap<>();
 
         // Broad phase: put packets into grid cells
@@ -42,6 +51,8 @@ public class CollisionManager {
                         if (distance <= combined) {
                             a.onCollision();
                             b.onCollision();
+                            AudioManager.get().playFx("pop");
+
                             Vector2D impact = a.getPosition().added(b.getPosition()).multiplied(0.5);
                             applyImpactWave(packets, impact);
                         }
@@ -53,13 +64,19 @@ public class CollisionManager {
     }
 
     private void applyImpactWave(List<Packet> packets, Vector2D center) {
+        /* 1 ─ Power-up: impact suppression */
+        if (world.getHudState().isPowerUpActive(PowerUpType.O_ATAR)) return;
+
         for (Packet p : packets) {
-            if (!p.isAlive()) continue;
-            if (!p.isMobile()) continue;
+            if (!p.isAlive() || !p.isMobile()) continue;
+
+
             double d = p.getPosition().distanceTo(center);
             if (d < IMPACT_RADIUS && d > 0) {
                 Vector2D dir = p.getPosition().subtracted(center).normalized();
-                Vector2D impulse = dir.multiplied((1 - d / IMPACT_RADIUS) * IMPULSE_FORCE);
+                /* 2 ─ Directional impulse (unchanged) */
+                double falloff = (1 - d / IMPACT_RADIUS);        // 1 → 0
+                Vector2D impulse = dir.multiplied(falloff * impulseForce);
                 p.getImpulse().add(impulse);   // ✅ new method to access impactImpulse
 
                 // **IMMEDIATE OFF-TRACK CHECK**
@@ -68,14 +85,17 @@ public class CollisionManager {
                 if (p.isOffTrackLine(Database.maxDistanceToBeOfTheLine, predictedPos)) {
                     System.out.println("offfff");
                     p.setUnAlive();
+                    AudioManager.get().playFx("loss");
                 }
             }
         }
     }
+
 
     private long hash(double x, double y) {
         long gx = (long)Math.floor(x / CELL_SIZE);
         long gy = (long)Math.floor(y / CELL_SIZE);
         return (gx << 32) | (gy & 0xffffffffL);
     }
+
 }

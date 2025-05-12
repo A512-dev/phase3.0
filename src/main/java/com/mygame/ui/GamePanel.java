@@ -40,14 +40,33 @@ public class GamePanel extends JPanel {
 
 
 
+    private ShopPanel shopPanel;
+    private boolean   shopOpen = false;
+
+    // ⬇️  put the override anywhere in the class body
+    @Override
+    public void doLayout() {
+        super.doLayout();                         // let JPanel lay out its children
+        if (shopPanel != null) {
+            // keep the overlay stretched to the current panel size
+            shopPanel.setBounds(0, 0, getWidth(), getHeight());
+        }
+    }
+
+
+
+
+
     public GamePanel(Runnable restartLevel) {
 //        setPreferredSize(new Dimension(800, 600));
 //        setDoubleBuffered(true);
 //        setFocusable(true);
 //        requestFocusInWindow();
         this.world = new World();
-        // 🔁 Run the slider logic again for second pass
+        maxWire = world.getHudState().getWireLengthRemaining();
+        // 🔁 Run the slider logic again f`or second pass
         world.setOnReachedTarget(this::goToTime);
+        world.setPacketEventListener(world.getHudState());
         this.worldView = new WorldView();
         // Start logic & render threads at 60 UPS/FPS in GamePanel
         gameLoop = new GameLoop(this, Database.ups, Database.fps);
@@ -55,6 +74,17 @@ public class GamePanel extends JPanel {
 
         setLayout(new OverlayLayout(this)); // Overlay layout allows stacking
         setPreferredSize(new Dimension(800, 600));
+
+        setLayout(null);                                // you already call this
+        shopPanel = new ShopPanel(world, world.getHudState(),
+                () -> {                         // onClose lambda
+                    world.getTimeController().togglePause();
+                    shopOpen = false;
+                    requestFocusInWindow();     // restore key focus
+                }
+                );
+        add(shopPanel);
+        shopPanel.setBounds(0,0,getPreferredSize().width,getPreferredSize().height);
 
         // Paint layer (this panel)
         setOpaque(true);
@@ -96,6 +126,17 @@ public class GamePanel extends JPanel {
                         System.out.println(tc.isFrozen() ? "⏸ Paused" : "▶️ Resumed");
                     }
                 }
+
+                if (e.getKeyCode() == KeyEvent.VK_S) {
+                    if (!shopOpen) {
+                        world.getTimeController().togglePause();  // freeze
+                        shopPanel.open();
+                    } else {
+                        shopPanel.close();
+                        world.getTimeController().togglePause();  // resume
+                    }
+                    shopOpen = !shopOpen;
+                }
             }
         });
         addMouseListener(new MouseAdapter() {
@@ -114,29 +155,18 @@ public class GamePanel extends JPanel {
                     Vector2D mousePos = new Vector2D(e.getX(), e.getY());
                     Port targetPort = world.findPortAtPosition(mousePos);
 
-//                    if (targetPort != null) {
-//                        double dist = selectedPort.getPosition().distanceTo(targetPort.getPosition());
-//                        if (dist <= maxWire) {
-//                            // Connect ports
-//                            selectedPort.setConnectedPort(targetPort);
-//                            targetPort.setConnectedPort(selectedPort);
-//
-//                            world.addConnection(new Connection(selectedPort, targetPort));
-//                        } else {
-//                            JOptionPane.showMessageDialog(null, "Wire too long!");
-//                        }
-//                    }
                     if (targetPort != null && targetPort.getCenter() != selectedPort.getCenter() &&
                             targetPort.getDirection() != selectedPort.getDirection()) {
 
                         double dist = selectedPort.getPosition().distanceTo(targetPort.getPosition());
-                        if (dist <= maxWire) {
+                        if (dist <= world.getHudState().getWireLengthRemaining()) {
+                            double x = world.getHudState().getWireLengthRemaining();
                             // Connect ports
                             selectedPort.setConnectedPort(targetPort);
                             targetPort.setConnectedPort(selectedPort);
 
                             world.addConnection(new Connection(selectedPort, targetPort));
-                            maxWire -= dist;
+                            world.getHudState().setWireLengthRemaining(x-dist);
                         } else {
                             JOptionPane.showMessageDialog(null, "Wire too long!");
                         }
@@ -302,7 +332,7 @@ public class GamePanel extends JPanel {
         if (world.isGameOver() && onGameOver != null && !world.isViewOnlyMode()) {
             onGameOver.run();  // Tell the main app to switch to GameOverPanel
         }
-        if (world.getTimeController().isPaused()) {
+        if (world.getTimeController().isPaused() && !shopOpen) {
             // Background dim
             g.setColor(new Color(0, 0, 0, 150));
             g.fillRect(0, 0, getWidth(), getHeight());

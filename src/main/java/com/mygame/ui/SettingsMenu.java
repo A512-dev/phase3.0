@@ -1,6 +1,8 @@
 // SettingsMenu.java
 package com.mygame.ui;
 
+import com.mygame.audio.AudioManager;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -11,7 +13,8 @@ public class SettingsMenu extends JPanel {
         volume.setMajorTickSpacing(25);
         volume.setPaintTicks(true);
         volume.setPaintLabels(true);
-
+        volume.addChangeListener(e -> AudioManager.get().setVolume(volume.getValue()));
+        this.add(new JLabel("Master volume"));
         JButton back = new JButton("Back");
         back.addActionListener(e -> onBack.run());
 

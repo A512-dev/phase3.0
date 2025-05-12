@@ -1,5 +1,6 @@
 package com.mygame.model;
 
+import com.mygame.audio.AudioManager;
 import com.mygame.util.Database;
 import com.mygame.util.Vector2D;
 
@@ -9,6 +10,18 @@ public class SystemNode {
     private double x, y, width, height;
     private List<Port> inputPorts = new ArrayList<>();
     private List<Port> outputPorts = new ArrayList<>();
+    // SystemNode.java   (field + setter)
+    private PacketEventListener listener;
+
+    public void setPacketEventListener(PacketEventListener l) {
+        this.listener = l;
+    }
+
+    public void setBaseLeft(boolean baseLeft) {
+        isBaseLeft = baseLeft;
+    }
+
+    private boolean isBaseLeft;
 
     public Queue<Packet> getQueuedPackets() {
         return packetQueue;
@@ -61,13 +74,9 @@ public class SystemNode {
                         double baseSpeed = Database.speedOfPackets;
                         pkt.velocity = dir.multiplied(baseSpeed);
                         if (out.getType() != Port.PortType.TRIANGLE) {
-                            // burst on mismatch
-//                            for (int i=0; i<40; i++)
-//                                System.out.println("kdssssssssssssssssssssssssssssssssssssssssssssssssssssssssss");
-                            double burst = Database.TRIANGLE_BASE_IMPULSE;
-                            pkt.setImpactImpulse(pkt.getImpulse().add(dir.multiplied(burst)));
+                            pkt.accelerator = dir.multiplied(Database.TRIANGLE_BASE_IMPULSE);
+                            pkt.velocity.add(pkt.accelerator);
                         }
-
                     }
 
                     pkt.setMobile(true);
@@ -126,11 +135,15 @@ public class SystemNode {
 //            }
         }
     public void enqueuePacket(Packet packet) {
-        if (packetQueue.size() < MAX_QUEUE_SIZE) {
+        if (packetQueue.size() < MAX_QUEUE_SIZE || isBaseLeft()) {
             packetQueue.offer(packet);
             packet.setMobile(false);
         } else {
-            packet.setUnAlive();  // lost
+            packet.setUnAlive();
+
+            if (listener != null) listener.onLost(packet);   // ⬅️ NEW
+            AudioManager.get().playFx("nutfall");// lost
+
         }
     }
 
@@ -193,6 +206,9 @@ public class SystemNode {
                 .allMatch(port -> port.getConnectedPort() != null);
         return allConnected;
 
+    }
+    public boolean isBaseLeft() {
+        return isBaseLeft;
     }
 //    public void emitQueued(List<Packet> worldPackets) {
 //        // but ignore the timer – just fire all possible ports once:

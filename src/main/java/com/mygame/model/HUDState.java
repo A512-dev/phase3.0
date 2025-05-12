@@ -1,12 +1,36 @@
 package com.mygame.model;
 
-public class HUDState {
+import com.mygame.model.powerups.PowerUpType;
+import com.mygame.util.Database;
+
+public class HUDState implements PacketEventListener{
     private int coins = 0;
 
     private double gameTime = 0;
     private int lostPackets = 0;
     private int totalPackets = 0;
     private int successfulPackets = 0;
+    private PowerUpType powerUpActive = null;
+
+    public boolean isShopOpen() {
+        return isShopOpen;
+    }
+
+    public void setShopOpen(boolean shopOpen) {
+        isShopOpen = shopOpen;
+    }
+
+    private boolean isShopOpen = false;
+    public double getWireLengthRemaining() {
+        return wireLengthRemaining;
+    }
+
+    public void setWireLengthRemaining(double wireLengthRemaining) {
+        this.wireLengthRemaining = wireLengthRemaining;
+    }
+
+    private double wireLengthRemaining = Database.MAX_WIRE_LENGTH;
+
 
     public int getNumOfGoToTarget() {
         return numOfGoToTarget;
@@ -44,5 +68,25 @@ public class HUDState {
         lostPackets = 0;
         coins = 0;
         gameTime = 0;
+    }
+
+    @Override
+    public void onLost(Packet p) {
+        lostPackets++;
+        coins = Math.max(0, coins - 1);  // prevent negative coins
+    }
+
+    @Override
+    public void onDelivered(Packet p) {
+        successfulPackets++;
+    }
+
+    @Override
+    public void onCollision(Packet a, Packet b) {
+
+    }
+
+    public boolean isPowerUpActive(PowerUpType oAtar) {
+        return !(powerUpActive ==null) && powerUpActive.equals(PowerUpType.O_ATAR);
     }
 }
