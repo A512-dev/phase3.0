@@ -11,11 +11,12 @@ public abstract class Packet {
     protected double size;
     protected Vector2D velocity;
     protected Vector2D impactImpulse = new Vector2D();  // gets added temporarily
-    protected double impulseDecay = 3.0;  // units per second
+    protected final double impulseDecay = Database.IMPULSE_DECAY;  // units per second
+    protected final double accDecay = Database.ACC_DECAY;
+    protected Vector2D accelerator = new Vector2D();
     protected Vector2D pathStart;
     protected Vector2D pathEnd;
     protected boolean mobile = false;
-
 
 
     public Packet(Vector2D pos, Vector2D vel, int life, int coinValue, double size) {
@@ -62,14 +63,27 @@ public abstract class Packet {
 
 
     public void update(double dt) {
+        // Decay the acc gradually back to 0
+        if (velocity.length()>Database.speedOfPackets && accelerator.length()>0) {
+            velocity.subtract(velocity.normalized().multiplied(accDecay*dt));
+            if (velocity.length()<Database.speedOfPackets)
+                velocity = velocity.normalized().multiplied(Database.speedOfPackets);
+        }
+
+
+
+
+        //Vector2D accVelocity = velocity.add(accelerator);
         // Total velocity = base + impulse
-        Vector2D totalVelocity = velocity.added(impactImpulse);
+        Vector2D totalVelocity = velocity.add(impactImpulse);
+
         position.add(totalVelocity.multiplied(dt));
 
         // Decay the impulse gradually back to 0
         impactImpulse.multiply(Math.max(0, 1 - impulseDecay * dt));
-
-        onUpdate(dt);
+        System.out.println("accSize=="+accelerator.length());
+        System.out.println(totalVelocity.length());
+        //onUpdate(dt);
     }
 
     public void setImpactImpulse(Vector2D impactImpulse) {
@@ -135,7 +149,7 @@ public abstract class Packet {
     }
     /** Returns true if this packet has reached (or passed) its pathEnd. */
     public boolean hasArrived() {
-        return position.distanceTo(pathEnd) <= Database.THRESHOLD_FOR_REACHING_PORT;
+        return getPosition().distanceTo(pathEnd) <= Database.THRESHOLD_FOR_REACHING_PORT;
     }
 
 

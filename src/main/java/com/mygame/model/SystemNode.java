@@ -61,13 +61,9 @@ public class SystemNode {
                         double baseSpeed = Database.speedOfPackets;
                         pkt.velocity = dir.multiplied(baseSpeed);
                         if (out.getType() != Port.PortType.TRIANGLE) {
-                            // burst on mismatch
-//                            for (int i=0; i<40; i++)
-//                                System.out.println("kdssssssssssssssssssssssssssssssssssssssssssssssssssssssssss");
-                            double burst = Database.TRIANGLE_BASE_IMPULSE;
-                            pkt.setImpactImpulse(pkt.getImpulse().add(dir.multiplied(burst)));
+                            pkt.accelerator = dir.multiplied(Database.TRIANGLE_BASE_IMPULSE);
+                            pkt.velocity.add(pkt.accelerator);
                         }
-
                     }
 
                     pkt.setMobile(true);
