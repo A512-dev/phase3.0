@@ -46,6 +46,8 @@ public class GamePanel extends JPanel {
 //        setFocusable(true);
 //        requestFocusInWindow();
         this.world = new World();
+        // 🔁 Run the slider logic again for second pass
+        world.setOnReachedTarget(this::goToTime);
         this.worldView = new WorldView();
         // Start logic & render threads at 60 UPS/FPS in GamePanel
         gameLoop = new GameLoop(this, Database.ups, Database.fps);
@@ -195,44 +197,14 @@ public class GamePanel extends JPanel {
         timeSlider.setFocusable(true);
         timeSlider.addChangeListener(e -> {
             if (!timeSlider.getValueIsAdjusting()) {
-                double target = timeSlider.getValue();
-                world.resetToSnapshot(world.getInitialState());
-                world.getHudState().resetGameTime();
-                if (target > 0) {
-                    world.setViewOnlyMode(true);  // 🔁 This suppresses GameOver
-//                    world.resetDynamic();
-//                    world.getHudState().resetGameTime();  // redundant if resetDynamic does it
-//                    world.getTimeController().setTimeMultiplier(8);
-//                    world.getTimeController().jumpTo(target);
-//                    if (world.getTimeController().isFrozen())
-//                        world.getTimeController().toggleFrozen();
-                    world.getTimeController().setTimeMultiplier(30);
-                    Database.timeMultiplier = 30;
-                    world.getTimeController().jumpTo(target);
-                    // 4) Un‐freeze so the nodes.update() actually runs
-                    world.getTimeController().startFromFreeze();
-
-                } else {
-                    // Reset and freeze at t=0
-                    world.getTimeController().waitToStart();
-                }
-                repaint();
-
-                requestFocusInWindow();  // regain key focus after slider interaction
+                world.getHudState().setNumOfGoToTarget(-1);
+                goToTime();
             }
-//            if (!timeSlider.getValueIsAdjusting()) {
-//                double target = timeSlider.getValue();
-//                if (target>0) {
-//
-//                    // 1. Reset to initial state
-//                    world.getTimeController().setTimeMultiplier(20.0);
-//                    world.getTimeController().jumpTo(target);
-//                    world.getTimeController().startFromFreeze();  // let sim run
-//                }
-//                if (!world.getTimeController().isWaitingToStart()) {
-//                    world.getTimeController().waitToStart(); // stand still for deterministic control
-//                }
-//            }
+            else {
+                // Reset and freeze at t=0
+                world.getTimeController().waitToStart();
+            }
+
         });
         add(timeSlider);
         setFocusable(true);
@@ -241,26 +213,56 @@ public class GamePanel extends JPanel {
         setDoubleBuffered(true);
     }
 
+    public void goToTime() {
+        System.out.println("KKKKKKKKKKKKKKKKKKKKKKKKKKKKK");
+        world.getHudState().setNumOfGoToTarget(world.getHudState().getNumOfGoToTarget()+1);
+        System.out.println("numGoTarget"+world.getHudState().getNumOfGoToTarget());
+        double target = timeSlider.getValue();
+        world.resetToSnapshot(world.getInitialState());
+        world.getHudState().resetGameTime();
+        if (target > 0) {
+            world.setViewOnlyMode(true);  // 🔁 This suppresses GameOver
+
+            world.getTimeController().setTimeMultiplier(Database.fastGameSpeed);
+            Database.timeMultiplier = Database.fastGameSpeed;
+            world.getTimeController().jumpTo(target);
+            // 4) Un‐freeze so the nodes.update() actually runs
+            world.getTimeController().startFromFreeze();
+
+        }
+        repaint();
+
+        requestFocusInWindow();  // regain key focus after slider interaction
+    }
+
     /**
      * Called by GameLoop once per logic tick.
      */
     public void updateLogic(double dt) {
-        double target = world.getTimeController().getTargetTime();
-        // if we’re in a jump, only simulate up to that moment
-        if (target >= 0) {
-            double timeLeft = target - world.getHudState().getGameTime();
-            if (timeLeft <= 0) {
-                // we’ve already reached or passed it—nothing more to do
-                return;
-            }
-            dt = Math.min(dt, timeLeft);
-        }
+//        double target = world.getTimeController().getTargetTime();
+//
+//
+//        if (target >= 0) {
+//            double currentTime = world.getHudState().getGameTime();
+//            double timeLeft = target - currentTime;
+//
+//            if (timeLeft <= 0) {
+//                // we've already reached target time
+//                return;
+//            }
+//
+//            // clamp dt so we don’t overshoot target
+//            dt = Math.min(dt, timeLeft);
+//        }
+////
         world.updateAll(dt);
 //        world.getTimeController().updateRealTime(dt);
-//        double simDt = world.getTimeController().getDeltaSeconds();
+//        double simDt = world.getTimeController().getDeltaSeconds(dt);
+//        // 3) Only step the world if there’s positive time to advance
 //        if (simDt > 0) {
-//            world.updateAll(simDt);
+//
 //        }
+
     }
     public void stop() {
         if (gameLoop != null) gameLoop.stop();

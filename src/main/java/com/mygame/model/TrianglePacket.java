@@ -26,7 +26,7 @@ public class TrianglePacket extends Packet {
     }
     @Override
     public Packet copy() {
-        TrianglePacket clone = new TrianglePacket(position.copy(), baseVelocity.copy());
+        TrianglePacket clone = new TrianglePacket(position.copy(), velocity.copy());
         clone.velocity = velocity.copy();
         clone.impactImpulse = impactImpulse.copy();
         clone.life = life;

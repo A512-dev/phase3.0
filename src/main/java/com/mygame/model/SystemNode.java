@@ -1,6 +1,5 @@
 package com.mygame.model;
 
-import com.mygame.engine.TimeController;
 import com.mygame.util.Database;
 import com.mygame.util.Vector2D;
 
@@ -20,9 +19,8 @@ public class SystemNode {
     }
 
     private Queue<Packet> packetQueue = new LinkedList<>();
-    private final int MAX_QUEUE_SIZE = 5;
+    private final int MAX_QUEUE_SIZE = Database.MAX_QUEUE_SIZE;
     private final int timeSendFromPort = Database.timeSendFromPort; // seconds
-    //private double timer = 0;
 
 
     public SystemNode(double x, double y) {
@@ -32,8 +30,7 @@ public class SystemNode {
         this.height = Database.lengthNodes;
     }
     public void update(double dt, List<Packet> worldPackets) {
-        //System.out.println("jdfvjvjerjegjergjegjergj");
-        //timer += dt;
+
         // First, update port busy-timers clearly
         for (Port port : outputPorts) {
             port.updateBusyTimer(dt, timeSendFromPort);
@@ -48,12 +45,32 @@ public class SystemNode {
 //                System.out.println("connected:"+out.getConnectedPort());
                 if (!out.isBusy() && out.getConnectedPort() != null) {
                     // a) mark packet mobile and set its new path
-                    pkt.setMobile(true);
+                    Vector2D dir = out.getConnectedPort().getCenter().subtracted(out.getCenter()).normalize();
                     pkt.position = out.getCenter();
                     pkt.setPath(
                             out.getCenter(),
                             out.getConnectedPort().getCenter()
                     );
+
+                    // 3) Adjust base velocity & impulses based on compatibility
+                    if (pkt instanceof SquarePacket) {
+                        double baseSpeed = Database.speedOfPackets;
+                        double factor    = (out.getType() == Port.PortType.SQUARE) ? 0.5 : 1.0;
+                        pkt.velocity = dir.multiplied(baseSpeed * factor);
+                    } else if (pkt instanceof TrianglePacket) {
+                        double baseSpeed = Database.speedOfPackets;
+                        pkt.velocity = dir.multiplied(baseSpeed);
+                        if (out.getType() != Port.PortType.TRIANGLE) {
+                            // burst on mismatch
+//                            for (int i=0; i<40; i++)
+//                                System.out.println("kdssssssssssssssssssssssssssssssssssssssssssssssssssssssssss");
+                            double burst = Database.TRIANGLE_BASE_IMPULSE;
+                            pkt.setImpactImpulse(pkt.getImpulse().add(dir.multiplied(burst)));
+                        }
+
+                    }
+
+                    pkt.setMobile(true);
                     // b) enqueue it into the world
                     worldPackets.add(pkt);
                     // c) put THIS port on cooldown for 3 s

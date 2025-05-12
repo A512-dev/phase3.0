@@ -10,9 +10,12 @@ public class Database {
     public static final Vector2D baseVelocityOfPackets = new Vector2D(30, 0);
     public static final double ups=120, fps=60;
     public static final double THRESHOLD_FOR_REACHING_PORT = 3;
+    public static final double TRIANGLE_BASE_IMPULSE = 120;
     public static double timeMultiplier = 1.0;
+    public static double fastGameSpeed = 10;
     public static final int timeSendFromPort = (int) (3); // seconds
+    public static final int MAX_QUEUE_SIZE = 5;
 
 
-
+    public static double speedOfPackets = 30;
 }

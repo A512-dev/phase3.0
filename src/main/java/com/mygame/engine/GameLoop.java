@@ -53,8 +53,9 @@ public class GameLoop {
                         panel.updateLogic(gameDt);
                     }
 
-
                     lastTime = now;
+
+
                 } else {
                     long sleepNanos = nsPerUpdate - elapsed;
                     try {

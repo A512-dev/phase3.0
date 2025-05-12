@@ -7,6 +7,16 @@ public class HUDState {
     private int lostPackets = 0;
     private int totalPackets = 0;
     private int successfulPackets = 0;
+
+    public int getNumOfGoToTarget() {
+        return numOfGoToTarget;
+    }
+
+    public void setNumOfGoToTarget(int numOfGoToTarget) {
+        this.numOfGoToTarget = numOfGoToTarget;
+    }
+
+    private int numOfGoToTarget = -1;
     public void incrementSuccessful() { successfulPackets++; }
     public int getSuccessful() { return successfulPackets; }
 

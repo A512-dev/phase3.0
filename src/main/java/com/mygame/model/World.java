@@ -2,6 +2,7 @@ package com.mygame.model;
 
 import com.mygame.engine.CollisionManager;
 import com.mygame.engine.TimeController;
+import com.mygame.ui.GamePanel;
 import com.mygame.util.Database;
 import com.mygame.util.Vector2D;
 
@@ -14,7 +15,12 @@ import com.mygame.model.Port.PortType;
 import static com.mygame.util.Database.PORT_SIZE;
 
 public class World {
+    private Runnable onReachedTargetCallback;
+    public void setOnReachedTarget(Runnable cb) {
+        this.onReachedTargetCallback = cb;
+    }
     private boolean viewOnlyMode = false;
+    private ArrayList<Integer> lossPacketRepeat = new ArrayList<>();
     public boolean isViewOnlyMode() { return viewOnlyMode; }
     public void setViewOnlyMode(boolean mode) { viewOnlyMode = mode; }
 
@@ -97,7 +103,6 @@ public class World {
 //            hud.incrementTotalPackets();
 //        }
         createTestLevel1();
-        captureDynamicInitial();
         this.initialState = takeSnapshot();
     }
     // somewhere in your World.java (or as a top-level class)
@@ -116,6 +121,8 @@ public class World {
             SystemNode fromNode = c.getFrom().getOwner();
             SystemNode toNode   = c.getTo()  .getOwner();
             hud.setLostPackets(0);
+            hud.resetGameTime();
+            simTimeAccumulator = 0;           // reset the sim-time clock
 
             int fn = nodes.indexOf(fromNode);
             int tn = nodes.indexOf(toNode);
@@ -155,6 +162,8 @@ public class World {
     public TimeController getTimeController() {
         return timeController;
     }
+    private double simTimeAccumulator = 0;
+
 
     //
 //    public void updateAll(double dt) {
@@ -170,6 +179,11 @@ public class World {
 //        hud.setGameTime(hud.getGameTime() + dt);
 //    }
     public void updateAll(double dt) {
+
+        // 1) advance OUR internal clock by the full dt:
+        simTimeAccumulator += dt;
+
+
 //        if (!packets.isEmpty()) {
 //            Packet test = packets.get(0);
 //            Vector2D a = test.getPathStart();
@@ -237,8 +251,10 @@ public class World {
         for (SystemNode node : nodes) {
             node.update(dt, packets);
         }
-        if (timeController.getTargetTime() >= 0 &&
-                hud.getGameTime() >= timeController.getTargetTime()) {
+
+
+        if (timeController.getTargetTime() > 0 &&
+                simTimeAccumulator >= timeController.getTargetTime()) {
             System.out.println("Reached Target");
             System.out.println("packets:"+getPackets().toString());
             System.out.println(getNodes().get(0).getQueuedPackets().toString());
@@ -247,11 +263,46 @@ public class World {
             timeController.setTimeMultiplier(1.0);
             Database.timeMultiplier = 1;
             timeController.waitToStart();
+
+            lossPacketRepeat.add(hud.getLostPackets());
+            System.out.println("lossPackets"+lossPacketRepeat.toString());
+            // ✅ Run another simulation round via callback
+            if (hud.getNumOfGoToTarget()<5 && onReachedTargetCallback != null) {
+                onReachedTargetCallback.run();
+            }
+            int x = 0;
+            int y = 0;
+            if (hud.getNumOfGoToTarget()==5) {
+                y++;
+                x = lossPacketRepeat.get(0) + lossPacketRepeat.get(1);
+                x += lossPacketRepeat.get(2);
+                x += lossPacketRepeat.get(3);
+                x += lossPacketRepeat.get(4);
+                x = (int) Math.round(((double) x)/5.0);
+            }
+
+            if (y==1) {
+                hud.setLostPackets(x);
+                System.out.println("minimum set");
+            }
+            if (lossPacketRepeat.size()==6)
+                lossPacketRepeat = new ArrayList<>();
+
+
+
+
         }
-        hud.setGameTime(hud.getGameTime() + dt);
+        else {
+            // if we haven’t hit the slider target yet, just display simTimeAccumulator
+            hud.setGameTime(simTimeAccumulator);
+        }
+        //hud.setGameTime(hud.getGameTime() + dt);
+
         long end = System.nanoTime();
         //System.out.println("World.updateAll took " + (end - start) / 1_000_000.0 + " ms");
+        //System.out.printf("dt = %.3f | GameTime = %.3f%n", dt, hud.getGameTime());
     }
+
 
 
 
@@ -362,22 +413,6 @@ public class World {
             }
         }
         return null;
-    }
-    private DynamicSnapshot dynamicInitial;  // only packets & gameTime
-
-    public void captureDynamicInitial() {
-        dynamicInitial = new DynamicSnapshot(
-                packets.stream().map(Packet::copy).collect(Collectors.toList()),
-                hud.getGameTime()
-        );
-    }
-
-    public void resetDynamic() {
-        // restore packets
-        packets.clear();
-        packets.addAll(dynamicInitial.packets.stream().map(Packet::copy).collect(Collectors.toList()));
-        // restore time
-        hud.setGameTime(0);
     }
 
 

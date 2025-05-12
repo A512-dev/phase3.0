@@ -22,7 +22,7 @@ public class SquarePacket extends Packet {
     }
     @Override
     public Packet copy() {
-        SquarePacket clone = new SquarePacket(position.copy(), baseVelocity.copy());
+        SquarePacket clone = new SquarePacket(position.copy(), velocity.copy());
         clone.velocity = velocity.copy();
         clone.impactImpulse = impactImpulse.copy();
         clone.life = life;

@@ -6,11 +6,10 @@ import java.awt.Graphics2D;
 
 public abstract class Packet {
     protected Vector2D position;
-    protected Vector2D velocity;
     protected int life;
     protected int coinValue;
     protected double size;
-    protected Vector2D baseVelocity;
+    protected Vector2D velocity;
     protected Vector2D impactImpulse = new Vector2D();  // gets added temporarily
     protected double impulseDecay = 3.0;  // units per second
     protected Vector2D pathStart;
@@ -22,7 +21,6 @@ public abstract class Packet {
     public Packet(Vector2D pos, Vector2D vel, int life, int coinValue, double size) {
         this.position = new Vector2D(pos);
         this.velocity = new Vector2D(vel);
-        this.baseVelocity = new Vector2D(vel);
         this.life = life;
         this.coinValue = coinValue;
         this.size = size;
@@ -43,18 +41,29 @@ public abstract class Packet {
     }
 
 
+    public void setPosition(Vector2D position) {
+        this.position = position;
+    }
+
+    public Vector2D getVelocity() {
+        return velocity;
+    }
+
+    public void setVelocity(Vector2D velocity) {
+        this.velocity = velocity;
+    }
 
     public void setPath(Vector2D start, Vector2D end) {
         this.pathStart = start;
         this.pathEnd = end;
-        this.baseVelocity = new Vector2D(end.x - start.x, end.y - start.y).normalized().multiplied(30);
+        this.velocity = new Vector2D(end.x - start.x, end.y - start.y).normalized().multiplied(Database.speedOfPackets);
     }
 
 
 
     public void update(double dt) {
         // Total velocity = base + impulse
-        Vector2D totalVelocity = baseVelocity.added(impactImpulse);
+        Vector2D totalVelocity = velocity.added(impactImpulse);
         position.add(totalVelocity.multiplied(dt));
 
         // Decay the impulse gradually back to 0
@@ -62,6 +71,11 @@ public abstract class Packet {
 
         onUpdate(dt);
     }
+
+    public void setImpactImpulse(Vector2D impactImpulse) {
+        this.impactImpulse = impactImpulse;
+    }
+
     public Vector2D getImpulse() {
         return impactImpulse;
     }
@@ -80,7 +94,7 @@ public abstract class Packet {
     }
 
     public Vector2D getPosition() { return position; }
-    public Vector2D getVelocity() { return velocity; }
+
     public double getSize() { return size; }
     public int getLife() { return life; }
     public int getCoinValue() { return coinValue; }
