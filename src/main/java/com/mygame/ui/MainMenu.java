@@ -6,6 +6,7 @@ import java.awt.*;
 
 public class MainMenu extends JPanel {
     public MainMenu(Runnable onPlay, Runnable onSettings) {
+        this.setBackground(Color.green);
         setLayout(new GridBagLayout());
         JButton playBtn = new JButton("Play");
         playBtn.addActionListener(e -> onPlay.run());

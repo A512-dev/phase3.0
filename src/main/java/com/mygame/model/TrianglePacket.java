@@ -7,11 +7,15 @@ public class TrianglePacket extends Packet {
 
     private double accel = Database.TRIANGLE_BASE_IMPULSE;
     public TrianglePacket(Vector2D pos, Vector2D vel) {
-        super(pos, vel, 3, 2, 12);
+        super(pos, vel, 6, 2, 12);
     }
 
     @Override
     protected void onUpdate(double dt) {
+        // Apply gentle continuous acceleration instead of initial blast
+        if (getAccelerator().length() > 0) {
+            velocity.add(getAccelerator().multiplied(dt));
+        }
 //
 //        Vector2D accelVector = velocity.normalized().multiplied(accel);
 //        velocity.add(accelVector.multiplied(dt));
@@ -25,7 +29,7 @@ public class TrianglePacket extends Packet {
     }
     @Override
     public int getMaxLife() {
-        return 3;
+        return 6;
     }
     @Override
     public Packet copy() {

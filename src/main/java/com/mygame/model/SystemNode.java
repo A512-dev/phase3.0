@@ -74,9 +74,13 @@ public class SystemNode {
                         double baseSpeed = Database.speedOfPackets;
                         pkt.velocity = dir.multiplied(baseSpeed);
                         if (out.getType() != Port.PortType.TRIANGLE) {
-                            pkt.accelerator = dir.multiplied(Database.TRIANGLE_BASE_IMPULSE);
-                            pkt.velocity.add(pkt.accelerator);
+                            pkt.accelerator = dir.multiplied(-Database.TRIANGLE_ACC_DECAY);
+                            /* (b) one-time launch boost that decays like other impulses */
+                            Vector2D launchKick = dir.multiplied(Database.TRIANGLE_BASE_IMPULSE);
+                            pkt.getImpulse().add(launchKick);
                         }
+                        else
+                            pkt.accelerator = new Vector2D();                    // no extra thrust
                     }
 
                     pkt.setMobile(true);

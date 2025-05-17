@@ -3,6 +3,7 @@ package com.mygame.engine;
 import com.mygame.audio.AudioManager;
 import com.mygame.model.HUDState;
 import com.mygame.model.Packet;
+import com.mygame.model.TrianglePacket;
 import com.mygame.model.World;
 import com.mygame.model.powerups.PowerUpType;
 import com.mygame.util.Database;
@@ -13,7 +14,7 @@ import java.util.*;
 public class CollisionManager {
     private final double CELL_SIZE = Database.CELL_SIZE;
     private final double IMPACT_RADIUS = Database.IMPACT_RADIUS;
-    private final double impulseForce = Database.IMPULSE_FORCE;
+    private double impulseForce = Database.IMPULSE_FORCE;
     private final World world;
     public CollisionManager(World world) {
         this.world = world;
@@ -21,36 +22,45 @@ public class CollisionManager {
     public void checkCollisions(List<Packet> packets) {
         /* inside checkCollisions(…) right at the start */
         if (world.isPowerUpActive(PowerUpType.O_AIRYAMAN)) return;   // skip all collisions
+
+
+//        // Broad phase: put packets into grid cells
+//        for (Packet p : packets) {
+//            long key = hash(p.getPosition().x, p.getPosition().y);
+//            grid.computeIfAbsent(key, k -> new ArrayList<>()).add(p);
+//        }
+//
+//        Set<Packet> checked = new HashSet<>();
         Map<Long, List<Packet>> grid = new HashMap<>();
+        packets.forEach(p -> grid
+                .computeIfAbsent(hash(p.getPosition().x, p.getPosition().y), k -> new ArrayList<>())
+                .add(p));
 
-        // Broad phase: put packets into grid cells
-        for (Packet p : packets) {
-            long key = hash(p.getPosition().x, p.getPosition().y);
-            grid.computeIfAbsent(key, k -> new ArrayList<>()).add(p);
-        }
-
-        Set<Packet> checked = new HashSet<>();
+        Set<Packet> processed = new HashSet<>();      // per‑frame guard
 
         // For each packet, only check neighbors
         for (Packet a : packets) {
-            if (!a.isAlive()) continue;
-            if (!a.isMobile()) continue;
+            if (!a.isAlive() || !a.isMobile() || processed.contains(a) || !a.canCollide()) continue;
             Vector2D posA = a.getPosition();
 
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dy = -1; dy <= 1; dy++) {
-                    long neighborKey = hash(posA.x + dx * CELL_SIZE, posA.y + dy * CELL_SIZE);
-                    List<Packet> nearby = grid.getOrDefault(neighborKey, Collections.emptyList());
+                    List<Packet> nearby = grid.getOrDefault(
+                            hash(posA.x + dx * CELL_SIZE, posA.y + dy * CELL_SIZE),
+                            Collections.emptyList());
+//                    long neighborKey = hash(posA.x + dx * CELL_SIZE, posA.y + dy * CELL_SIZE);
+//                    List<Packet> nearby = grid.getOrDefault(neighborKey, Collections.emptyList());
 
                     for (Packet b : nearby) {
-                        if (a == b || !b.isAlive() || checked.contains(b) || !b.isMobile()) continue;
+                        if (a == b || !b.isAlive() || !b.canCollide() || !b.isMobile()) continue;
 
                         double distance = a.getPosition().distanceTo(b.getPosition());
-                        double combined = a.getSize() / 2 + b.getSize() / 2;
+                        double combined = (a.getSize() + b.getSize()) * 0.5;
 
                         if (distance <= combined) {
                             a.onCollision();
                             b.onCollision();
+
                             AudioManager.get().playFx("pop");
 
                             Vector2D impact = a.getPosition().added(b.getPosition()).multiplied(0.5);
@@ -59,7 +69,7 @@ public class CollisionManager {
                     }
                 }
             }
-            checked.add(a);
+            processed.add(a);
         }
     }
 
@@ -74,14 +84,43 @@ public class CollisionManager {
             double d = p.getPosition().distanceTo(center);
             if (d < IMPACT_RADIUS && d > 0) {
                 Vector2D dir = p.getPosition().subtracted(center).normalized();
+
+                if (d<Database.LIMIT_FOR_COLLISION)
+                    d = 6;
                 /* 2 ─ Directional impulse (unchanged) */
-                double falloff = (1 - d / IMPACT_RADIUS);        // 1 → 0
-                Vector2D impulse = dir.multiplied(falloff * impulseForce);
-                p.getImpulse().add(impulse);   // ✅ new method to access impactImpulse
+                double falloff = (1 - d / IMPACT_RADIUS);// 1 → 0
+                double force   = (p instanceof TrianglePacket)
+                        ? Database.IMPULSE_FORCE_TRIANGLE
+                        : Database.IMPULSE_FORCE;
+                Vector2D impulse = dir.multiplied(falloff * force);
+                p.getImpulse().add(impulse);// ✅ new method to access impactImpulse
+                if (p instanceof TrianglePacket) {
+                    (p).setAccelerator(new Vector2D());
+                }
+                // quick push‑apart: move a tiny step so they’re no longer overlapping
+                p.setPosition(p.getPosition().added(impulse.multiplied(1.0/120.0)));
+
+
+//// Limit how fast the packet can be sent flying
+//                Vector2D newVel = p.getVelocity().add(impulse);
+//                if (newVel.length() > Database.MAX_KNOCKBACK_SPEED) {
+//                    newVel = newVel.normalized().multiplied(Database.MAX_KNOCKBACK_SPEED);
+//                    impulse = newVel.subtracted(p.getVelocity());   // adjust impulse
+//                }
+
+
+//                if (p instanceof TrianglePacket) {
+//                    System.out.println("impactTriangle="+impulse);
+//                    System.out.println("velocityTriangle="+p.getVelocity());
+//                }
+//                else {
+//                    System.out.println("impactSquare="+impulse);
+//                    System.out.println("velocitySquare="+p.getVelocity());
+//                }
 
                 // **IMMEDIATE OFF-TRACK CHECK**
                 // pretend we moved by impulse for this frame:
-                Vector2D predictedPos = p.getPosition().added(impulse.multiplied(1.0/60.0));
+                Vector2D predictedPos = p.getPosition().added(impulse.multiplied(1.0/120.0));
                 if (p.isOffTrackLine(Database.maxDistanceToBeOfTheLine, predictedPos)) {
                     System.out.println("offfff");
                     p.setUnAlive();

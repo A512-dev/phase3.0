@@ -12,7 +12,20 @@ public abstract class Packet {
     protected Vector2D velocity;
     protected Vector2D impactImpulse = new Vector2D();  // gets added temporarily
     protected final double impulseDecay = Database.IMPULSE_DECAY;  // units per second
-    protected final double accDecay = Database.ACC_DECAY;
+    protected final double accDecay = Database.TRIANGLE_ACC_DECAY;
+    private double hitShield = 0;                // ⏲ 0 = can collide
+    /* + helper methods */
+    public boolean canCollide()              { return hitShield <= 0; }
+    public void   giveHitShield(double sec)  { hitShield = Math.max(hitShield, sec); }
+
+    public Vector2D getAccelerator() {
+        return accelerator;
+    }
+
+    public void setAccelerator(Vector2D accelerator) {
+        this.accelerator = accelerator;
+    }
+
     protected Vector2D accelerator = new Vector2D();
     protected Vector2D pathStart;
     protected Vector2D pathEnd;
@@ -63,15 +76,16 @@ public abstract class Packet {
 
 
     public void update(double dt) {
+
+        // ▸ decay the one‑frame collision shield first
+        if (hitShield > 0) hitShield -= dt;
+
         // Decay the acc gradually back to 0
         if (velocity.length()>Database.speedOfPackets && accelerator.length()>0) {
             velocity.subtract(velocity.normalized().multiplied(accDecay*dt));
             if (velocity.length()<Database.speedOfPackets)
                 velocity = velocity.normalized().multiplied(Database.speedOfPackets);
         }
-
-
-
 
         //Vector2D accVelocity = velocity.add(accelerator);
         // Total velocity = base + impulse
@@ -81,8 +95,19 @@ public abstract class Packet {
 
         // Decay the impulse gradually back to 0
         impactImpulse.multiply(Math.max(0, 1 - impulseDecay * dt));
-        System.out.println("accSize=="+accelerator.length());
-        System.out.println(totalVelocity.length());
+//        if ((this instanceof TrianglePacket)) {
+//            System.out.println("accSize=="+accelerator.length());
+//            System.out.println(totalVelocity.length());
+//            System.out.println("Position="+getPosition());
+//            System.out.println("TriangleType="+(this instanceof TrianglePacket));
+//        }
+//        if ((this instanceof SquarePacket)) {
+//            System.out.println("accSize=="+accelerator.length());
+//            System.out.println(totalVelocity.length());
+//            System.out.println("Position="+getPosition());
+//            System.out.println("Square="+(this instanceof SquarePacket));
+//        }
+
         //onUpdate(dt);
     }
 
@@ -98,7 +123,8 @@ public abstract class Packet {
 
     public void onCollision() {
         life = Math.max(0, life - 1);
-        damage++;
+        giveHitShield(0.12);                     // ≃2 logic ticks @60 UPS
+        //damage++;
     }
 
     public boolean isAlive() {

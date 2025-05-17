@@ -4,7 +4,7 @@ import com.mygame.util.Vector2D;
 
 public class SquarePacket extends Packet {
     public SquarePacket(Vector2D pos, Vector2D vel) {
-        super(pos, vel, 2, 1, 10);
+        super(pos, vel, 4, 1, 10);
     }
 
     @Override
@@ -18,7 +18,7 @@ public class SquarePacket extends Packet {
     }
     @Override
     public int getMaxLife() {
-        return 2;
+        return 4;
     }
     @Override
     public Packet copy() {

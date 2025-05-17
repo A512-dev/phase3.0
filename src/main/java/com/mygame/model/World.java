@@ -244,7 +244,7 @@ public class World {
             if (!p.isAlive() || p.isOffTrackLine(Database.maxDistanceToBeOfTheLine)) {
                 System.out.printf("LOST @ t=%.3f  Δt overshoot=%.3f  dist=%.2f  threshold=%d%n",
                         hud.getGameTime(), dt, p.distanceToSegment(p.getPosition(), p.getPathStart(), p.getPathEnd()), Database.maxDistanceToBeOfTheLine);
-                System.out.println();
+                System.out.println("Triangle="+(p instanceof TrianglePacket));
                 //hud.incrementLostPackets();
                 if (eventListener != null) eventListener.onLost(p);
                 System.out.println(hud.getLostPackets());
@@ -412,28 +412,28 @@ public class World {
         mid3.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
                 baseLeft.getHeight() / 3));
         mid3.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
-                2 * baseLeft.getHeight() / 3));
+                2 * baseLeft.getHeight() / 4));
+        mid3.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
+                3 * baseLeft.getHeight() / 4));
         mid3.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
                 baseLeft.getHeight() / 2));
         nodes.add(mid3);
 
         // Base Right Node (sink)
-        SystemNode baseRight = new SystemNode(600, 250);
-        baseRight.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
-                baseLeft.getHeight() / 4));
+        SystemNode baseRight = new SystemNode(600, 100);
+//        baseRight.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
+//                baseLeft.getHeight() / 4));
         baseRight.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
                 2 * baseLeft.getHeight() / 4));
-        baseRight.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
-                3 * baseLeft.getHeight() / 4));
+//        baseRight.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
+//                3 * baseLeft.getHeight() / 4));
         baseRight.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
                 baseLeft.getHeight() / 2)); // loop back
         nodes.add(baseRight);
         for (SystemNode node : nodes)
             node.getPortsPrinted();
 
-        // Globally Balanced:
-        // Total Inputs: 6
-        // Total Outputs: 6 ✅
+
 
         // Packets start flowing from left node periodically
         for (int i = 0; i < 5; i++) {

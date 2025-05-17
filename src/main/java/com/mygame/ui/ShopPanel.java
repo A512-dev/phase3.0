@@ -20,6 +20,7 @@ public class ShopPanel extends JPanel {
         this.world = world;
         this.hud   = hud;
         this.onClose = onClose;
+        this.setBackground(new Color(234, 157, 15));
 
         setOpaque(false);           // let us paint translucent bg
         setLayout(null);            // manual layout

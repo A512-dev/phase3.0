@@ -74,6 +74,7 @@ public class GamePanel extends JPanel {
 
         setLayout(new OverlayLayout(this)); // Overlay layout allows stacking
         setPreferredSize(new Dimension(800, 600));
+        setBackground(new Color(234, 147, 197));
 
         setLayout(null);                                // you already call this
         shopPanel = new ShopPanel(world, world.getHudState(),
@@ -262,7 +263,8 @@ public class GamePanel extends JPanel {
         }
         repaint();
 
-        requestFocusInWindow();  // regain key focus after slider interaction
+        requestFocusInWindow();// regain key focus after slider interaction
+
     }
 
     /**
