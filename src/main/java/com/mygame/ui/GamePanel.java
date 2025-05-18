@@ -14,6 +14,7 @@ import java.util.Hashtable;
 import com.mygame.engine.GameLoop;
 import com.mygame.engine.TimeController;
 import com.mygame.model.Connection;
+import com.mygame.model.GameState;
 import com.mygame.model.Port;
 import com.mygame.model.World;
 import com.mygame.util.Database;
@@ -72,9 +73,36 @@ public class GamePanel extends JPanel {
         gameLoop = new GameLoop(this, Database.ups, Database.fps);
         gameLoop.start();
 
+
         setLayout(new OverlayLayout(this)); // Overlay layout allows stacking
         setPreferredSize(new Dimension(800, 600));
         setBackground(new Color(234, 147, 197));
+
+        if (GameState.currentLevel==1 && GameState.isLevel1Passed()) {
+            System.out.println("ppppppppppppppppppppppppppppppppppppppp");
+            JButton switchLevelBtn = new JButton("Level 2");
+            switchLevelBtn.setBounds(10, 10, 80, 30);
+            switchLevelBtn.setFocusable(true);
+            switchLevelBtn.addActionListener(e -> {
+                GameState.currentLevel = 2;
+                restartLevel.run();
+            });
+            add(switchLevelBtn);
+        }
+        else if (GameState.currentLevel==2) {
+            System.out.println("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+            JButton switchLevelBtn = new JButton("Level 1");
+            switchLevelBtn.setBounds(10, 10, 80, 30);
+            switchLevelBtn.setFocusable(true);
+            switchLevelBtn.addActionListener(e -> {
+                GameState.currentLevel = 1;
+                restartLevel.run();
+            });
+            add(switchLevelBtn);
+        }
+        System.out.println("currentLevel="+GameState.currentLevel);
+
+
 
         setLayout(null);                                // you already call this
         shopPanel = new ShopPanel(world, world.getHudState(),
@@ -148,6 +176,13 @@ public class GamePanel extends JPanel {
                 selectedPort = world.findPortAtPosition(mousePos);
                 if (selectedPort!=null)
                     System.out.println("selectedPort:"+selectedPort.getPosition().toString());
+                Port connected = selectedPort.getConnectedPort();
+                if (selectedPort.getConnectedPort()!=null) {
+                    // ✅ Remove existing connection clearly
+                    world.removeConnectionBetween(selectedPort, connected);
+                    selectedPort.setConnectedPort(null);
+                    connected.setConnectedPort(null);
+                }
             }
 
             @Override

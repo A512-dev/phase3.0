@@ -120,7 +120,14 @@ public class World {
 //            packets.add(slow);
 //            hud.incrementTotalPackets();
 //        }
-        createTestLevel1();
+        if (GameState.currentLevel==1)
+            createTestLevel1();
+        else if (GameState.currentLevel==2)
+            createTestLevel2();
+//        else if (GameState.currentLevel==1 && GameState.isLevel1Passed()) {
+//            GameState.currentLevel++;
+//            createTestLevel2();
+//        }
         this.initialState = takeSnapshot();
     }
     // somewhere in your World.java (or as a top-level class)
@@ -368,105 +375,7 @@ public class World {
         return gameOver;
     }
 
-    public void createTestLevel1() {
-        packets.clear();
-        nodes.clear();
-        connections.clear();
-        hud.reset();
-        setGameOver(false);
 
-        // Base Left Node (emitter)
-        SystemNode baseLeft = new SystemNode(100, 250);
-        baseLeft.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
-                baseLeft.getHeight() / 3));
-        baseLeft.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
-                2 * baseLeft.getHeight() / 3));
-        // **NEW**: add the “loopback” input on baseLeft
-        baseLeft.addInputPort(
-                PortType.SQUARE,
-                new Vector2D(-Database.PORT_SIZE / 2, baseLeft.getHeight() * 0.5)
-        );
-        baseLeft.setBaseLeft(true);
-        nodes.add(baseLeft);
-
-        // Intermediate Node 1
-        SystemNode mid1 = new SystemNode(250, 150);
-        mid1.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
-                baseLeft.getHeight() / 2));
-        mid1.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
-                baseLeft.getHeight() / 3));
-        mid1.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
-                2 * baseLeft.getHeight() / 3));
-        nodes.add(mid1);
-
-        // Intermediate Node 2
-        SystemNode mid2 = new SystemNode(250, 350);
-        mid2.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
-                baseLeft.getHeight() / 2));
-        mid2.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
-                baseLeft.getHeight() / 2));
-        nodes.add(mid2);
-
-        // Intermediate Node 3
-        SystemNode mid3 = new SystemNode(450, 250);
-        mid3.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
-                baseLeft.getHeight() / 3));
-        mid3.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
-                2 * baseLeft.getHeight() / 4));
-        mid3.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
-                3 * baseLeft.getHeight() / 4));
-        mid3.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
-                baseLeft.getHeight() / 2));
-        nodes.add(mid3);
-
-        // Base Right Node (sink)
-        SystemNode baseRight = new SystemNode(600, 100);
-//        baseRight.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
-//                baseLeft.getHeight() / 4));
-        baseRight.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
-                2 * baseLeft.getHeight() / 4));
-//        baseRight.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
-//                3 * baseLeft.getHeight() / 4));
-        baseRight.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
-                baseLeft.getHeight() / 2)); // loop back
-        nodes.add(baseRight);
-        for (SystemNode node : nodes)
-            node.getPortsPrinted();
-
-
-
-        // Packets start flowing from left node periodically
-        for (int i = 0; i < 5; i++) {
-            Vector2D pos = new Vector2D(baseLeft.getPosition().x + baseLeft.getWidth() / 2,
-                    baseLeft.getPosition().y + baseLeft.getHeight() / 2);
-            Packet[] p = new Packet[(int) Database.NUMBER_OF_PACKETS_LEVEL1];
-            for (int j=0; j<Database.NUMBER_OF_PACKETS_LEVEL1; j++) {
-                double x = Math.random();
-                if (x>0.5)
-                    p[j] = new SquarePacket(pos, new Vector2D());
-                else
-                    p[j] = new TrianglePacket(pos, new Vector2D());
-                p[j].setMobile(false);
-                baseLeft.enqueuePacket(p[j]);
-                hud.incrementTotalPackets();
-                System.out.println("packet " + i + " created");
-            }
-//            if (i % 2 == 0 && i % 2 == 1)
-//                p = new SquarePacket(pos, new Vector2D(0, 0));
-//            else
-//                p = new TrianglePacket(pos, new Vector2D(0, 0));
-//            p.setMobile(false);
-//            baseLeft.enqueuePacket(p);
-//            hud.incrementTotalPackets();
-
-        }
-        for (SystemNode n : nodes) {
-            n.setPacketEventListener(hud);   // HUDState already implements PacketEventListener
-        }
-
-
-        initialState = takeSnapshot();
-    }
 
     public Port findPortAtPosition(Vector2D pos) {
         for (SystemNode node : getNodes()) {
@@ -521,6 +430,160 @@ public class World {
             if (left <= 0) it.remove();
             else it.set(new ActivePowerUp(p.type(), left));  // replace
         }
+    }
+    public void removeConnectionBetween(Port a, Port b) {
+        connections.removeIf(conn ->
+                (conn.getFrom() == a && conn.getTo() == b) ||
+                        (conn.getFrom() == b && conn.getTo() == a)
+        );
+    }
+
+
+    public void createTestLevel1() {
+        packets.clear();
+        nodes.clear();
+        connections.clear();
+        hud.reset();
+        setGameOver(false);
+
+        // Base Left Node (emitter)
+        SystemNode baseLeft = new SystemNode(100, 250);
+        baseLeft.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
+                baseLeft.getHeight() / 3));
+        baseLeft.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
+                2 * baseLeft.getHeight() / 3));
+        // **NEW**: add the “loopback” input on baseLeft
+        baseLeft.addInputPort(
+                PortType.SQUARE,
+                new Vector2D(-Database.PORT_SIZE / 2, baseLeft.getHeight() * 0.5   -7));
+        baseLeft.setBaseLeft(true);
+        nodes.add(baseLeft);
+
+        // Intermediate Node 1
+        SystemNode mid1 = new SystemNode(400, 350);
+        mid1.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
+                baseLeft.getHeight() / 3));
+        mid1.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
+                2*baseLeft.getHeight() / 3));
+
+
+//        mid1.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
+//                baseLeft.getHeight() / 3));
+        mid1.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
+                2 * baseLeft.getHeight() / 3));
+        nodes.add(mid1);
+
+//        // Intermediate Node 2
+//        SystemNode mid2 = new SystemNode(250, 350);
+//        mid2.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
+//                baseLeft.getHeight() / 2));
+//        mid2.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
+//                baseLeft.getHeight() / 2));
+//        nodes.add(mid2);
+
+//        // Intermediate Node 3
+//        SystemNode mid3 = new SystemNode(450, 250);
+//        mid3.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
+//                baseLeft.getHeight() / 3));
+//        mid3.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
+//                2 * baseLeft.getHeight() / 4));
+//        mid3.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
+//                3 * baseLeft.getHeight() / 4));
+//        mid3.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
+//                baseLeft.getHeight() / 2));
+//        nodes.add(mid3);
+
+        // Base Right Node (sink)
+        SystemNode baseRight = new SystemNode(600, 100);
+//        baseRight.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
+//                baseLeft.getHeight() / 4));
+        baseRight.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
+                2 * baseLeft.getHeight() / 4   +20));
+//        baseRight.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
+//                3 * baseLeft.getHeight() / 4));
+        baseRight.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
+                baseLeft.getHeight() / 2  -7)); // loop back
+        nodes.add(baseRight);
+        for (SystemNode node : nodes)
+            node.getPortsPrinted();
+
+
+
+        // Packets start flowing from left node periodically
+        for (int i = 0; i < 5; i++) {
+            Vector2D pos = new Vector2D(baseLeft.getPosition().x + baseLeft.getWidth() / 2,
+                    baseLeft.getPosition().y + baseLeft.getHeight() / 2);
+            Packet[] p = new Packet[(int) Database.NUMBER_OF_PACKETS_LEVEL1];
+            for (int j=0; j<Database.NUMBER_OF_PACKETS_LEVEL1; j++) {
+                if (j%2==0 || true)
+                    p[j] = new SquarePacket(pos, new Vector2D());
+                else
+                    p[j] = new TrianglePacket(pos, new Vector2D());
+                p[j].setMobile(false);
+                baseLeft.enqueuePacket(p[j]);
+                hud.incrementTotalPackets();
+                System.out.println("packet " + i + " created");
+            }
+
+        }
+        for (SystemNode n : nodes) {
+            n.setPacketEventListener(hud);   // HUDState already implements PacketEventListener
+        }
+
+
+        initialState = takeSnapshot();
+    }
+
+
+
+    public void createTestLevel2() {
+        packets.clear();
+        nodes.clear();
+        connections.clear();
+        hud.reset();
+        setGameOver(false);
+
+        SystemNode baseLeft = new SystemNode(50, 200);
+        baseLeft.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
+                baseLeft.getHeight() / 3));
+        baseLeft.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
+                2 * baseLeft.getHeight() / 3));
+        baseLeft.addInputPort(Port.PortType.SQUARE, new Vector2D(-PORT_SIZE / 2, baseLeft.getHeight()/2));
+        baseLeft.setBaseLeft(true);
+        nodes.add(baseLeft);
+
+        SystemNode mid1 = new SystemNode(250, 50);
+        mid1.addInputPort(Port.PortType.SQUARE, new Vector2D(-PORT_SIZE / 2, baseLeft.getHeight()/2));
+        mid1.addOutputPort(Port.PortType.SQUARE, new Vector2D(baseLeft.getWidth() -PORT_SIZE / 2, baseLeft.getHeight()/2));
+        nodes.add(mid1);
+
+//        SystemNode mid2 = new SystemNode(200, 350);
+//        mid2.addInputPort(Port.PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2, baseLeft.getHeight()/2));
+//        mid2.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() -PORT_SIZE / 2, baseLeft.getHeight()/2));
+//        nodes.add(mid2);
+
+        SystemNode mid3 = new SystemNode(450, 300);
+        mid3.addInputPort(Port.PortType.SQUARE, new Vector2D(-PORT_SIZE / 2, 1*baseLeft.getHeight()/3));
+        mid3.addInputPort(Port.PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2, 2*baseLeft.getHeight()/3));
+        mid3.addOutputPort(Port.PortType.SQUARE, new Vector2D(baseLeft.getWidth() -PORT_SIZE / 2, baseLeft.getHeight()/2));
+        nodes.add(mid3);
+
+        SystemNode baseRight = new SystemNode(650, 400);
+        baseRight.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2, baseLeft.getHeight()/2));
+        baseRight.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() -PORT_SIZE / 2, baseLeft.getHeight()/2));
+        nodes.add(baseRight);
+
+        for (int i = 0; i < Database.NUMBER_OF_PACKETS_LEVEL2; i++) {
+            Vector2D pos = baseLeft.getPosition().added(new Vector2D(baseLeft.getWidth() / 2, baseLeft.getHeight() / 2));
+            Packet p = (Math.random() > 0.5) ? new SquarePacket(pos, new Vector2D()) : new TrianglePacket(pos, new Vector2D());
+            p.setMobile(false);
+            baseLeft.enqueuePacket(p);
+            hud.incrementTotalPackets();
+        }
+
+        nodes.forEach(node -> node.setPacketEventListener(hud));
+
+        initialState = takeSnapshot();
     }
 
 }
