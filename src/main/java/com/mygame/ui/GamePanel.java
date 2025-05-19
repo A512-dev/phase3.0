@@ -10,6 +10,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Hashtable;
+import java.util.Objects;
 
 import com.mygame.engine.GameLoop;
 import com.mygame.engine.TimeController;
@@ -79,9 +80,18 @@ public class GamePanel extends JPanel {
         setBackground(new Color(234, 147, 197));
 
         if (GameState.currentLevel==1 && GameState.isLevel1Passed()) {
-            System.out.println("ppppppppppppppppppppppppppppppppppppppp");
+
+            JButton playAgainBtn = new JButton("Play Again");
+            playAgainBtn.setBounds(100, 10, 120, 30);
+            playAgainBtn.setFocusable(true);
+            playAgainBtn.addActionListener(e -> {
+                GameState.clearConnections(1); // new method to remove saved solution
+                restartLevel.run();
+            });
+
+            add(playAgainBtn);
             JButton switchLevelBtn = new JButton("Level 2");
-            switchLevelBtn.setBounds(10, 10, 80, 30);
+            switchLevelBtn.setBounds(200, 10, 80, 30);
             switchLevelBtn.setFocusable(true);
             switchLevelBtn.addActionListener(e -> {
                 GameState.currentLevel = 2;
@@ -90,9 +100,18 @@ public class GamePanel extends JPanel {
             add(switchLevelBtn);
         }
         else if (GameState.currentLevel==2) {
-            System.out.println("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD");
+            if (GameState.isLevel2Passed()) {
+                JButton playAgainBtn = new JButton("Play Again");
+                playAgainBtn.setBounds(100, 10, 120, 30);
+                playAgainBtn.setFocusable(true);
+                playAgainBtn.addActionListener(e -> {
+                    GameState.clearConnections(2); // new method to remove saved solution
+                    restartLevel.run();
+                });
+                add(playAgainBtn);
+            }
             JButton switchLevelBtn = new JButton("Level 1");
-            switchLevelBtn.setBounds(10, 10, 80, 30);
+            switchLevelBtn.setBounds(200, 10, 80, 30);
             switchLevelBtn.setFocusable(true);
             switchLevelBtn.addActionListener(e -> {
                 GameState.currentLevel = 1;
@@ -176,21 +195,37 @@ public class GamePanel extends JPanel {
                 selectedPort = world.findPortAtPosition(mousePos);
                 if (selectedPort!=null)
                     System.out.println("selectedPort:"+selectedPort.getPosition().toString());
-                Port connected = selectedPort.getConnectedPort();
-                if (selectedPort.getConnectedPort()!=null) {
+                Port connected = Objects.requireNonNull(selectedPort).getConnectedPort();
+                if (null != selectedPort.getConnectedPort()) {
                     // ✅ Remove existing connection clearly
                     world.removeConnectionBetween(selectedPort, connected);
                     selectedPort.setConnectedPort(null);
                     connected.setConnectedPort(null);
                 }
+                // 🧼 EXTRA: scan world for *any* connection involving this port and clean it up (failsafe)
+                world.getConnections().removeIf(conn ->
+                        conn.getFrom() == selectedPort || conn.getTo() == selectedPort
+                );
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (selectedPort != null) {
+
                     Vector2D mousePos = new Vector2D(e.getX(), e.getY());
                     Port targetPort = world.findPortAtPosition(mousePos);
-
+                    // Overwrite previous connections
+                    if (targetPort != null) {
+                        if (targetPort.getConnectedPort() != null)
+                            world.removeConnectionBetween(targetPort, targetPort.getConnectedPort());
+                        if (selectedPort.getConnectedPort() != null)
+                            world.removeConnectionBetween(selectedPort, selectedPort.getConnectedPort());
+                    }
+                    // 🔄 Break existing links
+                    if (targetPort!= null && targetPort.getConnectedPort() != null)
+                        targetPort.getConnectedPort().setConnectedPort(null);
+                    if (selectedPort.getConnectedPort() != null)
+                        selectedPort.getConnectedPort().setConnectedPort(null);
                     if (targetPort != null && targetPort.getCenter() != selectedPort.getCenter() &&
                             targetPort.getDirection() != selectedPort.getDirection()) {
 

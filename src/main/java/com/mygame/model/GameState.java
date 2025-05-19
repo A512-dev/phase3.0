@@ -68,4 +68,12 @@ public class GameState {
         File file = new File(CONNECTIONS_FILE2);
         return file.exists();
     }
+    public static void clearConnections(int level) {
+        String file = (level == 1) ? CONNECTIONS_FILE1 : CONNECTIONS_FILE2;
+        try {
+            new File(file).delete();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
