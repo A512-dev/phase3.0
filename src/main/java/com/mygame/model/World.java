@@ -143,14 +143,30 @@ public class World {
         for (Connection c : connections) {
             SystemNode fromNode = c.getFrom().getOwner();
             SystemNode toNode = c.getTo().getOwner();
+            System.out.println("Nodes contains fromNode: " + nodes.contains(fromNode));
+            System.out.println("Nodes list: " + nodes);
+            System.out.println("fromNode: " + fromNode);
+
             hud.setLostPackets(0);
             hud.resetGameTime();
             simTimeAccumulator = 0;           // reset the sim-time clock
 
             int fn = nodes.indexOf(fromNode);
+            if (fn == -1) {
+                System.out.println("⚠️ fromNode not found in nodes!");
+            }
             int tn = nodes.indexOf(toNode);
+            if (tn == -1) {
+                System.out.println("⚠️ ToNode not found in nodes!");
+            }
             int fp = fromNode.getPorts().indexOf(c.getFrom());
+            if (fp == -1) {
+                System.out.println("⚠️ fromPort not found in nodes!");
+            }
             int tp = toNode.getPorts().indexOf(c.getTo());
+            if (tp == -1) {
+                System.out.println("⚠️ ToPort not found in nodes!");
+            }
             // ✅ RECORD IT!
             connRecs.add(new ConnectionRecord(fn, fp, tn, tp));
         }
@@ -167,10 +183,15 @@ public class World {
 
             Port fromPort = fn.getPorts().get(r.fromPortIndex);
             Port toPort = tn.getPorts().get(r.toPortIndex);
+            System.out.println("From port is null" + (fromPort));
+            System.out.println("o port is null" + (toPort));
 
             // re-link the two Ports...
             fromPort.setConnectedPort(toPort);
             toPort.setConnectedPort(fromPort);
+
+            System.out.println("From port Connected to=="+ fromPort.getConnectedPort());
+            System.out.println("To port Connected to" + toPort.getConnectedPort());
 
             // ...and recreate the Connection for rendering/logic
             this.connections.add(new Connection(fromPort, toPort));

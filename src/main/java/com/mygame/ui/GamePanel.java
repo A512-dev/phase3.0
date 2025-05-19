@@ -9,15 +9,16 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import com.mygame.engine.GameLoop;
 import com.mygame.engine.TimeController;
-import com.mygame.model.Connection;
-import com.mygame.model.GameState;
-import com.mygame.model.Port;
-import com.mygame.model.World;
+import com.mygame.model.*;
+import com.mygame.util.ConnectionRecord;
 import com.mygame.util.Database;
 import com.mygame.util.Vector2D;
 import com.mygame.view.WorldView;
@@ -190,15 +191,35 @@ public class GamePanel extends JPanel {
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
+
                 Vector2D mousePos = new Vector2D(e.getX(), e.getY());
                 System.out.println("Mouse="+mousePos.toString());
                 selectedPort = world.findPortAtPosition(mousePos);
-                if (selectedPort!=null)
-                    System.out.println("selectedPort:"+selectedPort.getPosition().toString());
-                Port connected = Objects.requireNonNull(selectedPort).getConnectedPort();
-                if (null != selectedPort.getConnectedPort()) {
-                    // ✅ Remove existing connection clearly
+                if (selectedPort!=null) {
+                    System.out.println("selectedPort:"+selectedPort);
+                    System.out.println("connected::"+ selectedPort.getConnectedPort());
+                }
+                for (Connection c : world.getConnections()) {
+                    if (c.getFrom().getConnectedPort() != c.getTo())
+                        c.getFrom().setConnectedPort(c.getTo());
+                    if ((c.getTo().getConnectedPort() != c.getFrom()))
+                        c.getTo().setConnectedPort(c.getFrom());
+                }
+
+                Port connected = selectedPort.getConnectedPort();
+                System.out.println("toPort====="+connected);
+                if (connected!=null) {
+                    // 🧮 Compute wire length
+                    double removedLength = selectedPort.getPosition().distanceTo(connected.getPosition());
+
+                    // 🔁 Add it back
+                    double newRemaining = world.getHudState().getWireLengthRemaining() + removedLength;
+                    world.getHudState().setWireLengthRemaining(newRemaining);
+                    System.out.println("mmmmmmmmmsmsmsmmsssmsmsmsmsmsmsmssmsm");
+
+                    // ❌ Remove connection from world list
                     world.removeConnectionBetween(selectedPort, connected);
+
                     selectedPort.setConnectedPort(null);
                     connected.setConnectedPort(null);
                 }
@@ -214,18 +235,18 @@ public class GamePanel extends JPanel {
 
                     Vector2D mousePos = new Vector2D(e.getX(), e.getY());
                     Port targetPort = world.findPortAtPosition(mousePos);
-                    // Overwrite previous connections
-                    if (targetPort != null) {
-                        if (targetPort.getConnectedPort() != null)
-                            world.removeConnectionBetween(targetPort, targetPort.getConnectedPort());
-                        if (selectedPort.getConnectedPort() != null)
-                            world.removeConnectionBetween(selectedPort, selectedPort.getConnectedPort());
-                    }
-                    // 🔄 Break existing links
-                    if (targetPort!= null && targetPort.getConnectedPort() != null)
-                        targetPort.getConnectedPort().setConnectedPort(null);
-                    if (selectedPort.getConnectedPort() != null)
-                        selectedPort.getConnectedPort().setConnectedPort(null);
+//                    // Overwrite previous connections
+//                    if (targetPort != null && targetPort.getCenter().distanceTo(selectedPort.getCenter())>10) {
+//                        if (targetPort.getConnectedPort() != null)
+//                            world.removeConnectionBetween(targetPort, targetPort.getConnectedPort());
+//                        if (selectedPort.getConnectedPort() != null)
+//                            world.removeConnectionBetween(selectedPort, selectedPort.getConnectedPort());
+//                    }
+//                    // 🔄 Break existing links
+//                    if (targetPort!= null && targetPort.getConnectedPort() != null)
+//                        targetPort.getConnectedPort().setConnectedPort(null);
+//                    if (selectedPort.getConnectedPort() != null)
+//                        selectedPort.getConnectedPort().setConnectedPort(null);
                     if (targetPort != null && targetPort.getCenter() != selectedPort.getCenter() &&
                             targetPort.getDirection() != selectedPort.getDirection()) {
 
@@ -315,7 +336,7 @@ public class GamePanel extends JPanel {
     }
 
     public void goToTime() {
-        System.out.println("KKKKKKKKKKKKKKKKKKKKKKKKKKKKK");
+
         world.getHudState().setNumOfGoToTarget(world.getHudState().getNumOfGoToTarget()+1);
         System.out.println("numGoTarget"+world.getHudState().getNumOfGoToTarget());
         double target = timeSlider.getValue();
@@ -330,6 +351,27 @@ public class GamePanel extends JPanel {
             // 4) Un‐freeze so the nodes.update() actually runs
             world.getTimeController().startFromFreeze();
 
+        }
+        else if (target == 0) {
+            world.getTimeController().stopJump();
+            world.getTimeController().waitToStart();
+            world.getTimeController().setTimeMultiplier(1.0);
+            Database.timeMultiplier = 1.0;
+            // ⏹️ Reset simulation cleanly
+            world.setViewOnlyMode(false);
+            world.getTimeController().jumpTo(target);
+            System.out.println("From:::"+world.getConnections().get(0).getFrom());
+            System.out.println("To:::"+world.getConnections().get(0).getTo());
+            // 4) Un‐freeze so the nodes.update() actually runs
+            //world.getTimeController().startFromFreeze();
+
+//            if (!world.getTimeController().isFrozen())
+//                world.getTimeController().toggleFrozen();    // ensure it's frozen again
+
+            world.getHudState().setCoins(0);
+            repaint();
+            requestFocusInWindow();
+            return;
         }
         repaint();
 
@@ -448,8 +490,6 @@ public class GamePanel extends JPanel {
         this.onGameOver = callback;
     }
 
-
-    /** Expose jump/pause controls to your UI/buttons */
     public void jumpTo(double seconds) {
         world.getTimeController().jumpTo(seconds);
     }
