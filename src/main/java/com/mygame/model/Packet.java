@@ -30,7 +30,6 @@ public abstract class Packet {
     protected Vector2D pathStart;
     protected Vector2D pathEnd;
     protected boolean mobile = false;
-    private double damage = 0;
 
     public Packet(Vector2D pos, Vector2D vel, int life, int coinValue, double size) {
         this.position = new Vector2D(pos);
@@ -80,6 +79,16 @@ public abstract class Packet {
         // ▸ decay the one‑frame collision shield first
         if (hitShield > 0) hitShield -= dt;
 
+        // Apply path correction
+        Vector2D desiredDir = pathEnd.subtracted(position).normalized();
+        Vector2D correction = desiredDir.subtracted(velocity.normalized()).multiplied(Database.PATH_CORRECTION_STRENGTH);
+        velocity.add(correction.multiplied(dt));
+
+        // Clamp to max speed
+        if (velocity.length() > Database.PACKET_MAX_SPEED)
+            velocity = velocity.normalized().multiplied(Database.PACKET_MAX_SPEED);
+
+
         // Decay the acc gradually back to 0
         if (velocity.length()>Database.speedOfPackets && accelerator.length()>0) {
             velocity.subtract(velocity.normalized().multiplied(accDecay*dt));
@@ -95,6 +104,13 @@ public abstract class Packet {
 
         // Decay the impulse gradually back to 0
         impactImpulse.multiply(Math.max(0, 1 - impulseDecay * dt));
+
+
+
+        // Reset to base speed when collision forces vanish
+        if (impactImpulse.length() < 1 && accelerator.length() < 1)
+            velocity = desiredDir.multiplied(Database.speedOfPackets);
+
 //        if ((this instanceof TrianglePacket)) {
 //            System.out.println("accSize=="+accelerator.length());
 //            System.out.println(totalVelocity.length());
@@ -201,7 +217,6 @@ public abstract class Packet {
 
     public abstract Packet copy();
     public void   resetHealth() {
-        damage = 0;
         if (this instanceof SquarePacket)
             life = Database.SQUARE_LIFE;
         else if (this instanceof TrianglePacket)

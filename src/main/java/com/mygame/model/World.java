@@ -5,15 +5,13 @@ import com.mygame.engine.CollisionManager;
 import com.mygame.engine.TimeController;
 import com.mygame.model.powerups.ActivePowerUp;
 import com.mygame.model.powerups.PowerUpType;
-import com.mygame.ui.GamePanel;
+import com.mygame.util.ConnectionRecord;
 import com.mygame.util.Database;
 import com.mygame.util.Vector2D;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import com.mygame.model.Port.PortType;
-
-import javax.xml.crypto.Data;
 
 import static com.mygame.util.Database.PORT_SIZE;
 
@@ -473,13 +471,13 @@ public class World {
                 2 * baseLeft.getHeight() / 3));
         nodes.add(mid1);
 
-//        // Intermediate Node 2
-//        SystemNode mid2 = new SystemNode(250, 350);
-//        mid2.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
-//                baseLeft.getHeight() / 2));
-//        mid2.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
-//                baseLeft.getHeight() / 2));
-//        nodes.add(mid2);
+        // Intermediate Node 2
+        SystemNode mid2 = new SystemNode(250, 250);
+        mid2.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
+                baseLeft.getHeight() / 2));
+        mid2.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
+                baseLeft.getHeight() / 2));
+        nodes.add(mid2);
 
 //        // Intermediate Node 3
 //        SystemNode mid3 = new SystemNode(450, 250);
@@ -494,15 +492,15 @@ public class World {
 //        nodes.add(mid3);
 
         // Base Right Node (sink)
-        SystemNode baseRight = new SystemNode(600, 100);
+        SystemNode baseRight = new SystemNode(600, 150);
 //        baseRight.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
 //                baseLeft.getHeight() / 4));
         baseRight.addInputPort(PortType.SQUARE, new Vector2D(-PORT_SIZE / 2,
-                2 * baseLeft.getHeight() / 4   +20));
+                2 * baseLeft.getHeight() / 4));
 //        baseRight.addInputPort(PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2,
 //                3 * baseLeft.getHeight() / 4));
         baseRight.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
-                baseLeft.getHeight() / 2  -7)); // loop back
+                baseLeft.getHeight() / 2 )); // loop back
         nodes.add(baseRight);
         for (SystemNode node : nodes)
             node.getPortsPrinted();
@@ -515,7 +513,7 @@ public class World {
                     baseLeft.getPosition().y + baseLeft.getHeight() / 2);
             Packet[] p = new Packet[(int) Database.NUMBER_OF_PACKETS_LEVEL1];
             for (int j=0; j<Database.NUMBER_OF_PACKETS_LEVEL1; j++) {
-                if (j%2==0 || true)
+                if (j%2==0)
                     p[j] = new SquarePacket(pos, new Vector2D());
                 else
                     p[j] = new TrianglePacket(pos, new Vector2D());

@@ -9,7 +9,7 @@ public class Database {
     public static final double PORT_CLICK_RADIUS = 8.0; // Radius of clickable area
     public static final Vector2D baseVelocityOfPackets = new Vector2D(30, 0);
     public static final double ups=120, fps=60;
-    public static final double THRESHOLD_FOR_REACHING_PORT = 3;
+    public static final double THRESHOLD_FOR_REACHING_PORT = 8;
     public static final double TRIANGLE_BASE_IMPULSE = 1.5;
     public static final double IMPULSE_DECAY = 3.0;
     public static final double ACC_DECAY = 200;
@@ -19,11 +19,11 @@ public class Database {
     public static final double NOISE_DELTA = 0.2;
 
     /* … existing constants … */
-    public static final double IMPULSE_FORCE           = 4;  // ↓ from 0.5
-    public static final double IMPULSE_FORCE_TRIANGLE  = 2;  // ↓ from 0.1
+    public static final double IMPULSE_FORCE           = 1.7;  // ↓ from 0.5
+    public static final double IMPULSE_FORCE_TRIANGLE  = 1.2;  // ↓ from 0.1
 
 
-    public static final double PATH_CORRECTION_STRENGTH = 60.0;  // how quickly packets correct toward path
+    public static final double PATH_CORRECTION_STRENGTH = 90;  // how quickly packets correct toward path
     public static final double PACKET_MAX_SPEED = 120.0;         // maximum speed allowed for packets after collision
 
     public static final double IMPACT_RADIUS = 60;

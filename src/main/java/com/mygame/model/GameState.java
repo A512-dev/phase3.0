@@ -2,6 +2,7 @@ package com.mygame.model;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.mygame.util.ConnectionRecord;
 
 import java.io.*;
 import java.util.*;

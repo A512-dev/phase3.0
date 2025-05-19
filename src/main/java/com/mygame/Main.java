@@ -6,7 +6,7 @@ import javax.swing.SwingUtilities;
 import com.mygame.audio.AudioManager;
 import com.mygame.model.*;
 import com.mygame.ui.*;
-import com.mygame.engine.GameLoop;
+import com.mygame.util.ConnectionRecord;
 
 import java.util.List;
 

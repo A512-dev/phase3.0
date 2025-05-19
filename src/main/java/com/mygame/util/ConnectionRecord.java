@@ -1,7 +1,8 @@
-package com.mygame.model;
+package com.mygame.util;
 
 public class ConnectionRecord {
-    final int fromNodeIndex, fromPortIndex;
+    public final int fromNodeIndex;
+    public final int fromPortIndex;
 
     public int getFromNodeIndex() {
         return fromNodeIndex;
@@ -19,8 +20,9 @@ public class ConnectionRecord {
         return toPortIndex;
     }
 
-    final int   toNodeIndex,   toPortIndex;
-    ConnectionRecord(int fn, int fp, int tn, int tp) {
+    public final int   toNodeIndex;
+    public final int toPortIndex;
+    public ConnectionRecord(int fn, int fp, int tn, int tp) {
         this.fromNodeIndex = fn;
         this.fromPortIndex = fp;
         this.toNodeIndex   = tn;
