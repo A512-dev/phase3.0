@@ -1,2 +1,4 @@
-rootProject.name = 'test1'
+rootProject.name = "BlueprintHell_phase 2"
+include("core", "engine", "model", "ui", "audio")
+
 

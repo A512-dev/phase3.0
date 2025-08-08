@@ -1,10 +1,9 @@
 package com.mygame.ui;
 
-import com.mygame.model.GameState;
+import com.mygame.core.GameState;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.function.Consumer;
 
 public class GameOverPanel extends JPanel {
     public GameOverPanel(int total, int lost, Runnable onRestart) {

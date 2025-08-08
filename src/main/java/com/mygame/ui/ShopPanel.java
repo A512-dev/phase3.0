@@ -1,9 +1,9 @@
 // com.mygame.ui.ShopPanel
 package com.mygame.ui;
 
-import com.mygame.model.World;
-import com.mygame.model.HUDState;
-import com.mygame.model.powerups.PowerUpType;
+import com.mygame.engine.world.World;
+import com.mygame.model.state.HUDState;
+import com.mygame.model.powerup.PowerUpType;
 
 import javax.swing.*;
 import java.awt.*;

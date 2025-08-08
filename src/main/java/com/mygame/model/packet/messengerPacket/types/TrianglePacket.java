@@ -1,0 +1,61 @@
+// MessengerTrianglePacket.java
+package com.mygame.model.packet.messengerPacket.types;
+import com.mygame.engine.physics.Vector2D;
+import com.mygame.model.packet.Packet;
+import com.mygame.model.packet.messengerPacket.MessengerPacket;
+
+public final class TrianglePacket extends MessengerPacket {
+    public TrianglePacket(Vector2D spawn){
+        super(spawn, Shape.TRIANGLE);
+        health = 10;
+    }
+    @Override public int getCoinValue(){ return 3; }
+    @Override public Shape shape(){ return Shape.TRIANGLE; }
+
+    @Override
+    public TrianglePacket copy() {
+        TrianglePacket newT = new TrianglePacket(pos);
+        newT.setVelocity(vel);
+        return newT;
+    }
+
+    @Override
+    public Vector2D getPosition() {
+        return pos;
+    }
+
+    @Override
+    public Vector2D getVelocity() {
+        return vel;
+    }
+
+    @Override
+    public double getRadius() {
+        return radius;
+    }
+
+    @Override
+    public double getInvMass() {
+        return invMass;
+    }
+
+    @Override
+    public double getRestitution() {
+        return restitution;
+    }
+
+    @Override
+    public double getFriction() {
+        return friction;
+    }
+
+    @Override
+    public void setPosition(Vector2D p) {
+        pos.set(p);
+    }
+
+    @Override
+    public void setVelocity(Vector2D v) {
+        vel.set(v);
+    }
+}

@@ -9,6 +9,11 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/audio" />
+            <option value="$PROJECT_DIR$/core" />
+            <option value="$PROJECT_DIR$/engine" />
+            <option value="$PROJECT_DIR$/model" />
+            <option value="$PROJECT_DIR$/ui" />
           </set>
         </option>
       </GradleProjectSettings>

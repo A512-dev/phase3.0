@@ -4,9 +4,13 @@ import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 import com.mygame.audio.AudioManager;
-import com.mygame.model.*;
+import com.mygame.core.GameState;
+import com.mygame.model.Port;
+import com.mygame.model.node.Node;
+import com.mygame.model.Connection;
+import com.mygame.engine.world.World;
 import com.mygame.ui.*;
-import com.mygame.util.ConnectionRecord;
+import com.mygame.core.ConnectionRecord;
 
 import java.util.List;
 
@@ -83,13 +87,13 @@ public class Main {
         World world = gamePanel.getWorld();
         assert connections != null;
         for (ConnectionRecord rec : connections) {
-            SystemNode fromNode = world.getNodes().get(rec.getFromNodeIndex());
-            SystemNode toNode = world.getNodes().get(rec.getToNodeIndex());
+            Node fromNode = world.getNodes().get(rec.getFromNodeIndex());
+            Node toNode = world.getNodes().get(rec.getToNodeIndex());
             Port fromPort = fromNode.getPorts().get(rec.getFromPortIndex());
             Port toPort = toNode.getPorts().get(rec.getToPortIndex());
             fromPort.setConnectedPort(toPort);
             toPort.setConnectedPort(fromPort);
-            world.addConnection(new Connection(fromPort, toPort));
+            world.addConnection(new Connection(fromPort, toPort, rec.getBends()));
         }
     }
     private void restartLevel() {

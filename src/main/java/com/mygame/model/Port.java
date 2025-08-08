@@ -1,41 +1,72 @@
 package com.mygame.model;
 
-import com.mygame.util.Database;
-import com.mygame.util.Vector2D;
+import com.mygame.core.GameConfig;
+import com.mygame.engine.physics.Vector2D;
+import com.mygame.model.node.Node;
+import com.mygame.model.node.BasicNode;
+import com.mygame.model.packet.Packet;
 
 public class Port {
 
-
     public enum PortType { SQUARE, TRIANGLE }
-    public enum PortDirection { OUTPUT, INPUT}
+    public enum PortDirection { OUTPUT, INPUT }
 
     private final Vector2D position;
     private final PortType type;
-    private final SystemNode owner;
-
-    public PortDirection getDirection() {
-        return direction;
-    }
-
     private final PortDirection direction;
-    private boolean busy = false;
-    private double busyTimer = 0;
+    private final Node owner;
 
-    public void updateBusyTimer(double dt, double busyDuration) {
-//        if (busy) {
-//            busyTimer += dt;
-//            if (busyTimer >= busyDuration) {
-//                busy = false;
-//                busyTimer = 0;
-//            }
-//        }
-//        else
-//            busyTimer = 0;
-        busyTimer = Math.max(0, busyTimer - dt);
+    private final GameConfig cfg = GameConfig.defaultConfig();
+
+    private double busyTimer = 0;
+    // In Port.java
+    private double emitCooldown = 1.0;     // seconds between packets
+    private double timeUntilNextEmit = 0;  // counts down
+    private Port connectedPort;
+    /** The Connection object this port participates in (if any). */
+    private Connection wire;
+
+    public Port(Node owner, PortType type, Vector2D position, PortDirection direction) {
+        this.owner = owner;
+        this.type = type;
+        this.direction = direction;
+        this.position = position;
+    }
+    /** Wire‐back‐pointer: which Connection this port is on */
+    public Connection getWire()      { return wire; }
+    public void setWire(Connection wire) {
+        this.wire = wire;
+        if (this.equals(wire.getFrom()))
+            this.connectedPort = wire.getTo();
+        else
+            this.connectedPort = wire.getFrom();
     }
 
-    private Port connectedPort;
+    /** Hand this packet straight into the node’s delivery logic. */
+    public void deliver(Packet p) {
+        owner.onDelivered(p, this);
+    }
 
+
+
+    public boolean canEmit() {
+        return timeUntilNextEmit <= 0;
+    }
+    public boolean isEmitting() {
+        return timeUntilNextEmit > 0;
+    }
+
+    public void tickCooldown(double dt) {
+        if (timeUntilNextEmit > 0)
+            timeUntilNextEmit -= dt;
+    }
+
+    public void resetCooldown() {
+        timeUntilNextEmit = emitCooldown;
+    }
+    public void setEmitCooldown(double seconds) {
+        this.emitCooldown = seconds;
+    }
     public Port getConnectedPort() {
         return connectedPort;
     }
@@ -44,33 +75,27 @@ public class Port {
         this.connectedPort = connectedPort;
     }
 
-
-
-    public Port(SystemNode owner, PortType type, PortDirection direction, Vector2D position) {
-        this.owner = owner;
-        this.type = type;
-        this.direction = direction;
-        this.position = position;
-    }
-    public boolean isBusy() { return busyTimer>0; }
-    public void setBusy() { busyTimer = Database.timeSendFromPort; }  // 3.0 seconds
-
-
     public Vector2D getPosition() {
         return position;
     }
+
     public Vector2D getCenter() {
-        return new Vector2D(getPosition().x+ Database.PORT_SIZE/2, getPosition().y+ Database.PORT_SIZE/2);
+        return new Vector2D(position.x() + cfg.portSize / 2.0, position.y() + cfg.portSize / 2.0);
     }
 
     public PortType getType() {
         return type;
     }
-    public Port copy(SystemNode newOwner) {
-        return new Port(newOwner,type,  direction, position.copy());  // or however your constructor looks
-    }
-    public SystemNode getOwner() {
-        return owner;
+
+    public PortDirection getDirection() {
+        return direction;
     }
 
+    public Port copy(BasicNode newOwner) {
+        return new Port(newOwner, type, position.copy(),direction);
+    }
+
+    public Node getOwner() {
+        return owner;
+    }
 }
