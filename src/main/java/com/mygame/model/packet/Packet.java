@@ -11,12 +11,38 @@ import com.mygame.model.packet.bulkPacket.BitPacket;
 import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
 
 public abstract class Packet implements PhysicsBody {
+    // --- add fields ---
+    private Vector2D impulse = new Vector2D();   // transient "kick"
+    private static final double IMPULSE_DECAY = 8.0; // 1/s, tune or move to Database
+
+
+    // --- public API ---
+    public void addImpulse(Vector2D j) { this.impulse = this.impulse.added(j); }
+    public Vector2D getImpulse()       { return impulse; }
+    public void     decayImpulse(double dt) {
+        // ~50ms TTL at 60 FPS: fast, deterministic fade
+        double k = Math.exp(-dt / 0.05);
+        impulse = impulse.multiplied(k);
+        if (impulse.lengthSq() < 1e-8) impulse = new Vector2D(0,0);
+    }
+    public void clearImpulse() { impulse = new Vector2D(); }
+
+
+    public boolean hasNoise() {
+        return noise>0;
+    };
+
+    public void addNoise(int i) {
+        noise += i;
+    }
+
     public enum Shape { SQUARE, TRIANGLE, INFINITY, HEXAGON, LOCK, BULK_A, CONFIDENTIAL_A, CONFIDENTIAL_B, BULK_B , TROJAN}
 
 
 
 
     protected Vector2D pos   = new Vector2D(0,0);
+
     protected boolean protectedByVPN = false;   // single‑use immunity flag
     protected int      heavyId       = -1;      // group id for Heavy/Bit packets
     protected int      sizeUnits     = 1;       // payload size (≥1)
@@ -30,6 +56,7 @@ public abstract class Packet implements PhysicsBody {
     protected Vector2D vel   = new Vector2D(20,0);     // px / s
     protected double   radius = 10;                      // for collision
     protected boolean  mobile = true;
+    protected double  noise = 0;
 
     protected int   health = 1;
 
@@ -91,9 +118,6 @@ public abstract class Packet implements PhysicsBody {
 
     /** Simple constant accelerator placeholder. */
     public void setAccelerator(Vector2D acc) { /* for phase-3 power-ups */ }
-
-    /** Tiny “kick” used by CollisionSystem. */
-    public Vector2D getImpulse() { return vel.normalized().multiplied(radius*0.1); }
 
     public int getHealth(){return health;}
     public float    getOpacity(){return opacity;}
@@ -159,7 +183,7 @@ public abstract class Packet implements PhysicsBody {
 
     /* convenience helpers used by multiple node types */
     public boolean isProtectedPacket()           { return protectedByVPN; }
-    public void    setProtected(boolean b){ protectedByVPN = b; }
+    public void setProtectedPacket(boolean b){ protectedByVPN = b; }
 
     public boolean isTrojanPacket()             { return this instanceof TrojanPacket; }
     public boolean isConfidentialPacket()             { return this instanceof ConfidentialPacket; }

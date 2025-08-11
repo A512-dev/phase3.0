@@ -6,11 +6,14 @@ import com.mygame.model.packet.bulkPacket.types.BulkPacketA;
 import com.mygame.model.packet.bulkPacket.types.BulkPacketB;
 import com.mygame.model.packet.messengerPacket.types.InfinityPacket;
 
+import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.List;
 
 /** Splits a Bulk packet into many Bit-packets. */
 public final class DistributorNode extends Node {
+    private final Deque<Packet> outbox = new ArrayDeque<>();
 
     public DistributorNode(double x, double y, double w, double h) { super(x, y, w, h); }
 
@@ -47,12 +50,12 @@ public final class DistributorNode extends Node {
 
     @Override
     public Collection<Packet> getQueuedPackets() {
-        return null;
+        return outbox;
     }
 
     @Override
     public void onDelivered(Packet p, Port port) {
-
+        onDelivered(p);
     }
 
     @Override

@@ -1,59 +1,35 @@
-// ConfidentialSmallPacket.java
 package com.mygame.model.packet.confidentialPacket.types;
+
+import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.Vector2D;
-import com.mygame.engine.physics.ConstantSpeed;
 import com.mygame.model.packet.Packet;
 import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
 
 public final class ConfidentialSmallPacket extends ConfidentialPacket {
-    public ConfidentialSmallPacket(Vector2D spawn){
-        super(spawn, 4);
+
+    public ConfidentialSmallPacket(Vector2D spawn) {
+        super(spawn, GameConfig.CONFIDENTIAL_SMALL_PACKET_LIFE); // Size = 4 units
     }
-    @Override public int getCoinValue(){ return 3; }
-    @Override public Shape shape(){ return Shape.HEXAGON; }
+
+    @Override
+    public int getCoinValue() {
+        return GameConfig.CONFIDENTIAL_SMALL_PACKET_COIN_VALUE;
+    }
 
     @Override
     public Packet copy() {
-        return null;
+        ConfidentialSmallPacket copy = new ConfidentialSmallPacket(pos.copy());
+        copy.setVelocity(vel.copy());
+        copy.setAcceleration(getAcceleration().copy());
+        return copy;
     }
 
-    @Override
-    public Vector2D getPosition() {
-        return null;
-    }
-
-    @Override
-    public Vector2D getVelocity() {
-        return null;
-    }
-
-    @Override
-    public double getRadius() {
-        return 0;
-    }
-
-    @Override
-    public double getInvMass() {
-        return 0;
-    }
-
-    @Override
-    public double getRestitution() {
-        return 0;
-    }
-
-    @Override
-    public double getFriction() {
-        return 0;
-    }
-
-    @Override
-    public void setPosition(Vector2D p) {
-
-    }
-
-    @Override
-    public void setVelocity(Vector2D v) {
-
-    }
+    @Override public Vector2D getPosition()    { return pos; }
+    @Override public Vector2D getVelocity()    { return vel; }
+    @Override public double   getRadius()      { return radius; }
+    @Override public double   getInvMass()     { return invMass; }
+    @Override public double   getRestitution() { return restitution; }
+    @Override public double   getFriction()    { return friction; }
+    @Override public void     setPosition(Vector2D p) { pos.set(p); }
+    @Override public void     setVelocity(Vector2D v) { vel.set(v); }
 }

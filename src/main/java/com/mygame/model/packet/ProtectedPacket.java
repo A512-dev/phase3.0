@@ -36,6 +36,10 @@ public final class ProtectedPacket extends Packet {
         return original;
     }
 
+    /** (optional) expose the wrapped original if you need it elsewhere */
+    public MessengerPacket getOriginal() { return original; }
+
+
     @Override
     public ProtectedPacket copy() {
         return new ProtectedPacket(original.copy());

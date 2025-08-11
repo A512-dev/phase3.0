@@ -64,8 +64,16 @@ public final class MovementSystem implements MovementStrategy {
             /* 1 ─ physics:  a → v → x  */
             pkt.setVelocity( pkt.getVelocity()
                     .added( pkt.getAcceleration().multiplied(dt) ) );
+
+            // >>> add transient impulse channel here
+            pkt.setVelocity( pkt.getVelocity().added( pkt.getImpulse() ) );
+
             pkt.setPosition( pkt.getPosition()
                     .added( pkt.getVelocity().multiplied(dt) ) );
+
+
+            // 3) decay the impulse AFTER using it
+            pkt.decayImpulse(dt);
 
             // update velocity direction
             Projection proj = closestPointOnPath(pkt.getPosition(), path);

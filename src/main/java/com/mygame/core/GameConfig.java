@@ -5,6 +5,13 @@ import com.mygame.engine.physics.Vector2D;
 /** Immutable bundle of all tunable constants. */
 public final class GameConfig {
 
+    public static final int CONFIDENTIAL_SMALL_PACKET_LIFE = 4;
+    public static final int CONFIDENTIAL_SMALL_PACKET_COIN_VALUE = 3;
+    public static final int CONFIDENTIAL_LARGE_PACKET_LIFE = 6;
+    public static final int CONFIDENTIAL_LARGE_PACKET_COIN_VALUE = 4;
+    public static final double STRENGTH_OF_WAVE = 1.200;
+    public static final double RADIUS_OF_WAVE = 40.0;
+
     /* --- node geometry --- */
     public final int nodeWidth           = 90;
     public final int nodeHeight          = 150;
@@ -39,11 +46,11 @@ public final class GameConfig {
 
     /* --- life / health --- */
     public static final int squareLife   = 10;
-    public final int triangleLife = 3;
+    public static final int triangleLife = 3;
 
     /* --- packet counts & runs --- */
     public final int    numberOfRuns           = 1;
-    public final int numberOfPacketsLevel1  = 2;
+    public final int numberOfPacketsLevel1  = 6;
     public final double numberOfPacketsLevel2  = 40.0;
     public final double noiseDelta             = 0.2;
     public final double fastGameSpeed          = 5.0;

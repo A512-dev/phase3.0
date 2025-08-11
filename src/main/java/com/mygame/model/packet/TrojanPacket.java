@@ -8,7 +8,7 @@ public class TrojanPacket extends Packet{
 
 
 
-    protected TrojanPacket(Packet original) {
+    public TrojanPacket(Packet original) {
         super(original.getPosition().copy(), original.health);
         this.original = original;
         this.sizeUnits = original.sizeUnits();       // preserve key traits

@@ -3,6 +3,7 @@ package com.mygame.engine.world;
 import com.mygame.audio.AudioManager;
 import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.CollisionSystem;
+import com.mygame.engine.physics.ImpactWaveSystem;
 import com.mygame.model.Connection;
 import com.mygame.engine.loop.TimeController;
 import com.mygame.engine.physics.Vector2D;
@@ -54,11 +55,14 @@ public class World {
     /* NEW: single source of truth for all coin operations */
     private final CoinService  coinService  = new CoinService(hud);
 
-    private final CollisionSystem collisionSystem = new CollisionSystem();
+
+    private final ImpactWaveSystem waveSystem = new ImpactWaveSystem();
+    private final CollisionSystem collisionSystem = new CollisionSystem(mid ->
+            waveSystem.emit(mid, /*radius*/GameConfig.RADIUS_OF_WAVE, /*strength*/GameConfig.STRENGTH_OF_WAVE));
+
+
     private final TimeController timeController    = new TimeController();
     private WorldSnapshot initialState;
-
-    private final double PORT_CLICK_RADIUS = cfg.portClickRadius;
 
     /* ---------------- power-up support ---------------- */
     private final List<ActivePowerUp> active = new ArrayList<>();
@@ -136,6 +140,7 @@ public class World {
 //        }
         // 2) physics resolution
         collisionSystem.step(packets, dt);
+        waveSystem.update(dt, connections, false);
 
 
         // 3) Cull off-track & dead; handle arrivals
@@ -251,6 +256,7 @@ public class World {
     public Port findPortAtPosition(Vector2D pos) {
         for (Node node : getNodes()) {
             for (Port port : node.getPorts()) {
+                double PORT_CLICK_RADIUS = cfg.portClickRadius;
                 if (port.getCenter().distanceTo(pos) <= PORT_CLICK_RADIUS) {
                     if (port.getConnectedPort() != null) {
                         port.getConnectedPort().setConnectedPort(null);

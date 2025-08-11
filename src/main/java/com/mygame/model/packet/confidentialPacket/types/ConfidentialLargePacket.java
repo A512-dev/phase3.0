@@ -1,59 +1,42 @@
-// ConfidentialLargePacket.java
 package com.mygame.model.packet.confidentialPacket.types;
+
+import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.Vector2D;
-import com.mygame.engine.physics.ConstantSpeed;
 import com.mygame.model.packet.Packet;
 import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
 
+import com.mygame.engine.physics.Vector2D;
+import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
+
 public final class ConfidentialLargePacket extends ConfidentialPacket {
-    public ConfidentialLargePacket(Vector2D spawn){
-        super(spawn, 6);
-    }
-    @Override public int getCoinValue(){ return 4; }
-    @Override public Shape shape(){ return Shape.HEXAGON; }
 
-    @Override
-    public Packet copy() {
-        return null;
+    public ConfidentialLargePacket(Vector2D spawn) {
+        super(spawn, 6); // اندازه 6 واحد
     }
 
     @Override
-    public Vector2D getPosition() {
-        return null;
-    }
+    public int getCoinValue() { return 4; }
 
     @Override
-    public Vector2D getVelocity() {
-        return null;
-    }
+    public Shape shape() { return Shape.CONFIDENTIAL_B; }
 
     @Override
-    public double getRadius() {
-        return 0;
+    public ConfidentialLargePacket copy() {
+        ConfidentialLargePacket cp = new ConfidentialLargePacket(pos.copy());
+        cp.setVelocity(vel.copy());
+        cp.setAcceleration(getAcceleration().copy());
+        return cp;
     }
 
-    @Override
-    public double getInvMass() {
-        return 0;
-    }
+    // حرکت: سرعت ثابت + حفظ فاصله مشخص با سایر پکت‌های روی سیم (در منطق حرکت اضافه شود)
 
-    @Override
-    public double getRestitution() {
-        return 0;
-    }
 
-    @Override
-    public double getFriction() {
-        return 0;
-    }
-
-    @Override
-    public void setPosition(Vector2D p) {
-
-    }
-
-    @Override
-    public void setVelocity(Vector2D v) {
-
-    }
+    @Override public Vector2D getPosition()    { return pos; }
+    @Override public Vector2D getVelocity()    { return vel; }
+    @Override public double   getRadius()      { return radius; }
+    @Override public double   getInvMass()     { return invMass; }
+    @Override public double   getRestitution() { return restitution; }
+    @Override public double   getFriction()    { return friction; }
+    @Override public void     setPosition(Vector2D p) { pos.set(p); }
+    @Override public void     setVelocity(Vector2D v) { vel.set(v); }
 }
