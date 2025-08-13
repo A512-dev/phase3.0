@@ -4,7 +4,6 @@ package com.mygame.model.packet;
 import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.PhysicsBody;
 import com.mygame.engine.physics.Vector2D;
-import com.mygame.engine.physics.MovementStrategy;
 import com.mygame.model.Connection;
 import com.mygame.model.Port;
 import com.mygame.model.packet.bulkPacket.BitPacket;
@@ -14,6 +13,10 @@ public abstract class Packet implements PhysicsBody {
     // --- add fields ---
     private Vector2D impulse = new Vector2D();   // transient "kick"
     private static final double IMPULSE_DECAY = 8.0; // 1/s, tune or move to Database
+    private boolean infected = false;
+    // ---- health & status ----
+    protected int maxHealth = 100;
+    protected double health  = maxHealth;
 
 
     // --- public API ---
@@ -45,7 +48,7 @@ public abstract class Packet implements PhysicsBody {
 
     protected boolean protectedByVPN = false;   // single‑use immunity flag
     protected int      heavyId       = -1;      // group id for Heavy/Bit packets
-    protected int      sizeUnits     = 1;       // payload size (≥1)
+    protected int payloadSize = 1;       // payload size (≥1)
 
     // Packet.java (add)
     private Connection wire = null;      // current wire, null = in node / off track
@@ -57,8 +60,6 @@ public abstract class Packet implements PhysicsBody {
     protected double   radius = 10;                      // for collision
     protected boolean  mobile = true;
     protected double  noise = 0;
-
-    protected int   health = 1;
 
     protected final double   size = GameConfig.defaultConfig().packetSize;
     protected        float   opacity = 1f;
@@ -107,7 +108,7 @@ public abstract class Packet implements PhysicsBody {
     public Port getFromPort() { return fromPort; }
     public Port getToPort() { return toPort; }
 
-    protected Packet(Vector2D spawn,int health){ this.pos = spawn.copy(); this.health=health; }
+    protected Packet(Vector2D spawn, double health, double radius){ this.pos = spawn.copy(); this.health=health; this.radius = radius; }
 
 
 
@@ -116,10 +117,10 @@ public abstract class Packet implements PhysicsBody {
     public double   speed()     { return vel.length(); }
 
 
-    /** Simple constant accelerator placeholder. */
-    public void setAccelerator(Vector2D acc) { /* for phase-3 power-ups */ }
+//    /** Simple constant accelerator placeholder. */
+//    public void setAccelerator(Vector2D acc) { /* for phase-3 power-ups */ }
 
-    public int getHealth(){return health;}
+    public double getHealth(){return health;}
     public float    getOpacity(){return opacity;}
 
     /* ------------ abstract bits ------------ */
@@ -185,12 +186,35 @@ public abstract class Packet implements PhysicsBody {
     public boolean isProtectedPacket()           { return protectedByVPN; }
     public void setProtectedPacket(boolean b){ protectedByVPN = b; }
 
+    /* =====================  health & status  ===================== */
+
+    public boolean isInfected() { return infected; }
+    public void infect()        { infected = true; }
+    public void cleanInfection(){ infected = false; }  // ✅ used by AntiTrojan etc.
+
     public boolean isTrojanPacket()             { return this instanceof TrojanPacket; }
+
     public boolean isConfidentialPacket()             { return this instanceof ConfidentialPacket; }
     public boolean isBitPacket()                { return this instanceof BitPacket; }
 
     public int  heavyId()                 { return heavyId; }
-    public int  sizeUnits()               { return sizeUnits; }
+    public int  sizeUnits()               { return payloadSize; }
+
+    /** Reduce health; when <= 0 mark dead. */
+    public void damage(double amount) {
+        if (amount <= 0) return;
+        health -= amount;
+        if (health <= 0) {
+            health = 0;
+            setAlive(false);     // assumes Packet already has setAlive(boolean)
+        }
+    }
+
+    /** Increase health but clamp to max. */
+    public void heal(double amount) {
+        if (amount <= 0) return;
+        health = Math.min(maxHealth, health + amount);
+    }
 
     /* default coin value: override per spec *
 

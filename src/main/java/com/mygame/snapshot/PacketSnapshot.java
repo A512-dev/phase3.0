@@ -24,7 +24,7 @@ public record PacketSnapshot(
 
         return new PacketSnapshot(
                 p.getPosition().copy(),
-                p.getHealth(),
+                p.getRadius(),
                 p.getOpacity(),
                 p.shape(),
                 p.isMobile(),

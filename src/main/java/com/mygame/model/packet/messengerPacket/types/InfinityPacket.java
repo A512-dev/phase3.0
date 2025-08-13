@@ -3,13 +3,12 @@
 package com.mygame.model.packet.messengerPacket.types;
 
         import com.mygame.engine.physics.Vector2D;
-        import com.mygame.model.packet.Packet;
         import com.mygame.model.packet.messengerPacket.MessengerPacket;
 
 public final class InfinityPacket extends MessengerPacket {
 
-    public InfinityPacket(Vector2D spawn, int health) {
-        super(spawn, Shape.INFINITY); // Health/size = 1 unit
+    public InfinityPacket(Vector2D spawn, double health, double radius) {
+        super(spawn, Shape.INFINITY, radius); // Health/size = 1 unit
         this.health = health;
     }
 
@@ -25,7 +24,7 @@ public final class InfinityPacket extends MessengerPacket {
 
     @Override
     public InfinityPacket copy() {
-        InfinityPacket copy = new InfinityPacket(pos.copy(), getHealth());
+        InfinityPacket copy = new InfinityPacket(pos.copy(), getHealth(), getRadius());
         copy.setVelocity(vel.copy());
         return copy;
     }

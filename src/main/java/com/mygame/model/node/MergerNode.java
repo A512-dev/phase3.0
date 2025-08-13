@@ -1,5 +1,6 @@
 package com.mygame.model.node;
 
+import com.mygame.audio.AudioManager;
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.model.Port;
 import com.mygame.model.packet.*;
@@ -40,10 +41,26 @@ public final class MergerNode extends Node {
 
     @Override
     public void update(double dt, List<Packet> worldPackets) {
+        super.update(dt, worldPackets);
+        int count = (int) getQueuedPackets().stream().filter(q -> q instanceof InfinityPacket).count();
+        if (count >= 8) {  // threshold
+            // remove 8 bits
+            int removed = 0;
+            Iterator<Packet> it = getQueuedPackets().iterator();
+            while (it.hasNext() && removed < 8) {
+                if (it.next() instanceof InfinityPacket) { it.remove(); removed++; }
+            }
+
+            Packet bulk = new BulkPacketA(getCenter().copy(), removed, getHeight()); /*** fix! it's very shityu now* */
+            // push bulk to output
+            bulk.setMobile(false);
+            enqueuePacket(bulk);
+            AudioManager.get().playFx("merge_whoosh");
+        }
         // Combine when enough bits collected
         if (buffer.size() >= NEEDED_BITS) {
             Vector2D pos = getCenter().copy();
-            Packet bulk = new BulkPacketA(pos);   // or B depending on design
+            Packet bulk = new BulkPacketA(getCenter().copy(), buffer.size(), getHeight());   // or B depending on design
             enqueuePacket(bulk);
             buffer.clear();
         }
@@ -57,7 +74,8 @@ public final class MergerNode extends Node {
 
     @Override
     public void onDelivered(Packet p, Port port) {
-
+        super.onDelivered(p, port);
+        onDelivered(p);
     }
 
     @Override

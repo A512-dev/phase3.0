@@ -23,28 +23,31 @@ public final class VPNNode extends Node {
             enqueuePacket(prot);
             return;
         }
+        ProtectedPacket wrapped = new ProtectedPacket(p);
 
-        // only messenger packets are protectable per spec
-        if (p instanceof MessengerPacket msg) {
-            ProtectedPacket wrapped = new ProtectedPacket(msg);
+        // keep routing & kinematics consistent
+        wrapped.setRoute(p.getFromPort(), p.getToPort());
+        wrapped.setVelocity(p.getVelocity().copy());
+        wrapped.setAcceleration(p.getAcceleration().copy());
+        wrapped.setMobile(p.isMobile());
+        wrapped.setOpacity(p.getOpacity());
 
-            // keep routing & kinematics consistent
-            wrapped.setRoute(p.getFromPort(), p.getToPort());
-            wrapped.setVelocity(p.getVelocity().copy());
-            wrapped.setAcceleration(p.getAcceleration().copy());
-            wrapped.setMobile(p.isMobile());
-            wrapped.setOpacity(p.getOpacity());
+        issued.add(wrapped);     // remember: created by THIS VPN
+        enqueuePacket(wrapped);  // emit protected
 
-            issued.add(wrapped);     // remember: created by THIS VPN
-            enqueuePacket(wrapped);  // emit protected
-            return;
-        }
-
-        // other packet types: forward unchanged
-        enqueuePacket(p);
+//        // only messenger packets are protectable per spec
+//        if (p instanceof MessengerPacket msg) {
+//
+//        }
+//
+//        // other packet types: forward unchanged
+//        enqueuePacket(p);
     }
 
-    @Override public void onDelivered(Packet p, Port at) { onDelivered(p); }
+    @Override public void onDelivered(Packet p, Port at) {
+        super.onDelivered(p, at);
+        onDelivered(p);
+    }
     @Override public void onLost(Packet p) { /* no-op */ }
     @Override public void onCollision(Packet a, Packet b) { /* no-op */ }
 
@@ -58,7 +61,7 @@ public final class VPNNode extends Node {
     public void shutdown(List<Packet> worldPackets) {
         // turn every still-alive ProtectedPacket we issued back into its original
         for (ProtectedPacket prot : new ArrayList<>(issued)) {
-            MessengerPacket original = prot.revert();
+            Packet original = prot.revert();
             original.setProtectedPacket(false);   // they become vulnerable again
             prot.setAlive(false);           // consume the wrapper
             worldPackets.add(original);     // put the original back into the world

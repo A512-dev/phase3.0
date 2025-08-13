@@ -1,5 +1,7 @@
 package com.mygame.model.node;
 
+import com.mygame.audio.AudioManager;
+import com.mygame.core.GameConfig;
 import com.mygame.model.Port;
 import com.mygame.model.packet.*;
 import com.mygame.model.packet.bulkPacket.types.BulkPacketA;
@@ -25,14 +27,13 @@ public final class DistributorNode extends Node {
     @Override
     public void onDelivered(Packet p) {
         if (p instanceof BulkPacketA || p instanceof BulkPacketB) {
-            // TODO: decide n = size/bitSize; create n MessengerInfinityPacket bits
-            int bits = Math.max(2, (int) (p.getHealth() / 2));
+            int bits = Math.max(2, (int)(p.getHealth() / 2));   // tune
             for (int i = 0; i < bits; i++) {
-                Packet bit = new InfinityPacket(p.getPosition().copy(), 2);
-                bit.setRoute(p.getFromPort(), p.getToPort());
-                enqueuePacket(bit);
+                Packet bit = new InfinityPacket(getCenter().copy(), GameConfig.squareLife, GameConfig.squareSize); // or port pos
+                bit.setMobile(false);
+                enqueuePacket(bit);   // node’s queue; emitted in node.update(...)
             }
-            p.setAlive(false);                  // original bulk consumed
+            AudioManager.get().playFx("split_pop");
         } else {
             enqueuePacket(p);
         }
@@ -55,6 +56,7 @@ public final class DistributorNode extends Node {
 
     @Override
     public void onDelivered(Packet p, Port port) {
+        super.onDelivered(p, port);
         onDelivered(p);
     }
 

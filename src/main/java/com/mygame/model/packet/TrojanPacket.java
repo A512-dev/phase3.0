@@ -1,7 +1,6 @@
 package com.mygame.model.packet;
 
-import com.mygame.engine.physics.Vector2D;
-import com.mygame.model.packet.messengerPacket.MessengerPacket;
+import com.mygame.core.GameConfig;
 
 public class TrojanPacket extends Packet{
     private final Packet original;   // 🔁 original version before corruption
@@ -9,9 +8,9 @@ public class TrojanPacket extends Packet{
 
 
     public TrojanPacket(Packet original) {
-        super(original.getPosition().copy(), original.health);
+        super(original.getPosition().copy(), original.health, GameConfig.trojanPacketSize);
         this.original = original;
-        this.sizeUnits = original.sizeUnits();       // preserve key traits
+        this.payloadSize = original.sizeUnits();       // preserve key traits
         this.heavyId = original.heavyId();
         this.protectedByVPN = original.isProtectedPacket();
     }
@@ -23,6 +22,7 @@ public class TrojanPacket extends Packet{
         original.setMobile(this.isMobile());
         original.setAlive(this.isAlive());
         original.setOpacity(this.getOpacity());
+        original.cleanInfection();
         return original;
     }
     public Packet getOriginalPacket() {

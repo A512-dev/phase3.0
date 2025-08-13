@@ -1,5 +1,6 @@
 package com.mygame.model.packet.bulkPacket;
 
+import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.model.packet.Packet;
 
@@ -8,16 +9,16 @@ import java.util.UUID;
 /** پایه‌ی پکت حجیم؛ گونه‌ها A/B فقط اندازه و سکه را مشخص می‌کنند. */
 public class BulkPacket extends Packet {
 
-    public BulkPacket(Vector2D spawn, int sizeUnits) {
-        super(spawn, /*health*/ 3);             // مقدار پایه برای health – دلخواه
-        this.sizeUnits = sizeUnits;             // 8 یا 10 ...
+    public BulkPacket(Vector2D spawn, int payload, double health) {
+        super(spawn, /*health*/ health, GameConfig.bulkPacketSize);             // مقدار پایه برای health – دلخواه
+        this.payloadSize = payload;             // 8 یا 10 ...
         this.heavyId   = UUID.randomUUID().hashCode();  // گروه‌بندی برای Bitها
     }
 
     /** کپی عمیق با حفظ heavyId (برای بازتولید در اسنپ‌شات‌ها و …) */
     @Override
     public BulkPacket copy() {
-        BulkPacket cp = new BulkPacket(pos.copy(), sizeUnits);
+        BulkPacket cp = new BulkPacket(pos.copy(), payloadSize, getHealth());
         cp.heavyId = this.heavyId;              // حفظ گروه
         cp.setVelocity(vel.copy());
         cp.setAcceleration(getAcceleration().copy());
@@ -27,7 +28,7 @@ public class BulkPacket extends Packet {
 
     /** پیش‌فرض: سکه برابر اندازه؛ گونه‌های A/B مقدار ثابت خودشان را برمی‌گردانند. */
     @Override
-    public int getCoinValue() { return Math.max(1, sizeUnits); }
+    public int getCoinValue() { return Math.max(1, payloadSize); }
 
     /** آیکون عمومی برای حجیم‌ها؛ گونه‌ها شکل دقیق را override می‌کنند. */
     @Override

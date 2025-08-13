@@ -1,15 +1,11 @@
 package com.mygame.model.node;
 
 import com.mygame.core.GameConfig;
-import com.mygame.engine.world.World;
 import com.mygame.model.Port;
 import com.mygame.model.packet.Packet;
 
-import java.sql.Struct;
-import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.List;
-import java.util.Queue;
 
 /** Plain pass-through node used in early levels. */
 public class BasicNode extends Node {
@@ -33,13 +29,8 @@ public class BasicNode extends Node {
 
     /* Emit one queued packet per frame (or whatever rule you like) */
     @Override public void update(double dt, List<Packet> worldPackets) {
-        for (Port port: getPorts()) {
-            if (port.isEmitting()) {
-                port.tickCooldown(dt);
-                System.out.println(2);
-            }
 
-        }
+        super.update(dt, worldPackets);
         if (!queue.isEmpty()) {
             for (Port out : outputs) {
                 if (out.getConnectedPort() != null && out.canEmit()) {
@@ -64,7 +55,11 @@ public class BasicNode extends Node {
 
     @Override
     public void onDelivered(Packet p, Port port) {
-        queue.add(p);
+        super.onDelivered(p, port);
+        if (queue.size()>=GameConfig.MAX_QUEUE)
+            p.setAlive(false);
+        else
+            queue.add(p);
     }
 
     @Override

@@ -5,8 +5,8 @@ import com.mygame.model.packet.Packet;
 
 public abstract class ConfidentialPacket extends Packet {
 
-    protected ConfidentialPacket(Vector2D spawn, int sizeUnits) {
-        super(spawn, sizeUnits);
+    protected ConfidentialPacket(Vector2D spawn, int health, int sizeUnits) {
+        super(spawn, health, sizeUnits);
     }
 
     @Override

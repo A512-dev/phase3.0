@@ -31,15 +31,17 @@ public final class SaboteurNode extends Node {
 
         // به احتمال مشخص به TrojanPacket تبدیل شود
         if (Math.random() < INFECT_CHANCE) {
-            p = new TrojanPacket(p); // سازنده‌ای که نسخه اصلی را نگه دارد
+            TrojanPacket trojanP = new TrojanPacket(p); // سازنده‌ای که نسخه اصلی را نگه دارد
+            super.enqueuePacket(trojanP);
         }
-
-        enqueuePacket(p);
+        else {
+            enqueuePacket(p);
+        }
     }
 
     @Override
     public void onDelivered(Packet p, Port at) {
-        // مثل onDelivered ولی با توجه به پورت ورودی
+        super.onDelivered(p, at);
         onDelivered(p);
     }
 

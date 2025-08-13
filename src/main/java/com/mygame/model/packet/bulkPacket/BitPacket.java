@@ -1,5 +1,6 @@
 package com.mygame.model.packet.bulkPacket;
 
+import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.model.packet.Packet;
 
@@ -18,7 +19,7 @@ public final class BitPacket extends Packet {
 
     /** همیشه health=1 چون بیت‌ها اندازه‌شان ۱ است. */
     public BitPacket(Vector2D spawn, int groupId, int colorTag) {
-        super(spawn, /*health=*/1);
+        super(spawn, /*health=*/GameConfig.bitPacketLife, GameConfig.bitPacketSize);
         this.groupId = groupId;
         this.colorTag = colorTag;
     }

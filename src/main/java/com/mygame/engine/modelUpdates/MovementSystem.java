@@ -1,9 +1,14 @@
 package com.mygame.engine.modelUpdates;
 
+import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.MovementStrategy;
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.model.Connection;
+
 import com.mygame.model.packet.Packet;
+import com.mygame.model.packet.bulkPacket.types.BulkPacketA;
+import com.mygame.model.packet.bulkPacket.types.BulkPacketB;
+
 
 import java.util.Iterator;
 import java.util.List;
@@ -12,6 +17,11 @@ import java.util.ListIterator;
 import static com.mygame.engine.physics.Vector2D.distPointToSegment;
 
 public final class MovementSystem implements MovementStrategy {
+    final double base = com.mygame.core.GameConfig.SPEED_OF_CONFIDENTIAL_SMALL_PACKET;
+    final double Rslow   = com.mygame.core.GameConfig.CSP_APPROACH_RADIUS;      // e.g., 120
+    final double slowFac = com.mygame.core.GameConfig.CSP_SLOW_FACTOR;          // e.g., 0.35
+    final double margin  = com.mygame.core.GameConfig.CSP_SOFTSTOP_MARGIN;      // e.g., 8
+    final double rate    = com.mygame.core.GameConfig.CSP_LERP_RATE;            // e.g., 12
 
 //    @Override
 //    public void update(Packet p, double dt) {
@@ -25,33 +35,49 @@ public final class MovementSystem implements MovementStrategy {
         for (Connection c : wires) updateWire(c, dt);
     }
 
-    private void keepForward(Packet pkt){
-        Connection w = pkt.getWire();
-        if (w == null) return;                       // داخل نود
-        Vector2D dir = w.getTo().getCenter()
-                .subtracted(w.getFrom().getCenter())
-                .normalized();               // بردارِ سیم
-
-        /* جدا کردن سرعت به مؤلفه‌ ها */
-        Vector2D v       = pkt.getVelocity();
-        double   forward = v.dot(dir);               // مؤلفه در امتداد
-        Vector2D lateral = v.subtracted(dir.multiplied(forward));
-
-        /* اگر منفی شد، مقدار مثبت حداقلِ دلخواه بده */
-        if (forward < 0){
-            forward = Math.abs(forward);       // ۲۰٪ انرژی برگشتی
-        }
-
-        /* بازترکیب و ست‌کردن */
-        pkt.setVelocity( dir.multiplied(forward).added(lateral) );
-    }
+//    private void keepForward(Packet pkt){
+//        Connection w = pkt.getWire();
+//        if (w == null) return;                       // داخل نود
+//        Vector2D dir = w.getTo().getCenter()
+//                .subtracted(w.getFrom().getCenter())
+//                .normalized();               // بردارِ سیم
+//
+//        /* جدا کردن سرعت به مؤلفه‌ ها */
+//        Vector2D v       = pkt.getVelocity();
+//        double   forward = v.dot(dir);               // مؤلفه در امتداد
+//        Vector2D lateral = v.subtracted(dir.multiplied(forward));
+//
+//        /* اگر منفی شد، مقدار مثبت حداقلِ دلخواه بده */
+//        if (forward < 0){
+//            forward = Math.abs(forward);       // ۲۰٪ انرژی برگشتی
+//        }
+//
+//        /* بازترکیب و ست‌کردن */
+//        pkt.setVelocity( dir.multiplied(forward).added(lateral) );
+//    }
 
     private void updateWire(Connection c, double dt) {
         /* tunables – adjust once, use everywhere */
         final double ARRIVE_R = 6.0;   // ≤ this → reached destination port
         final double DEAD_R   = 18.0;  // ≥ this → “falls off” the wire
-        final double DAMPING  = 0.995; // 1 → no damping
+//        final double DAMPING  = 0.995; // 1 → no damping
         final double TURN_R = 1.0;   // px within which we “snap” at bend
+          /* ───── NEW: Bulk A tuning ─────
+       Add these to GameConfig:
+       BULK_A_SPEED_FLAT, BULK_A_ACCEL_CURVE, BULK_A_VMAX_CURVE, CURVE_ZONE_RADIUS
+    */
+        final double bulkFlatSpeed = GameConfig.SPEED_OF_BULKPACKET_A_PACKET;      // e.g., 90 px/s
+        final double bulkCurveAcc  = com.mygame.core.GameConfig.BULK_A_ACCEL_CURVE;     // e.g., 240 px/s^2
+        final double bulkCurveVmax = com.mygame.core.GameConfig.BULK_A_VMAX_CURVE;      // e.g., 160 px/s
+        final double curveZoneR    = com.mygame.core.GameConfig.CURVE_ZONE_RADIUS;      // e.g., 14 px around bends
+        // ─── Bulk B (constant forward speed with periodic lateral deviation) ───
+        final double bulkBSpeed   = com.mygame.core.GameConfig.BULK_B_SPEED;
+        final double bulkBAmpl    = com.mygame.core.GameConfig.BULK_B_DEVIATION_AMPL;
+        final double bulkBWave    = com.mygame.core.GameConfig.BULK_B_DEVIATION_WAVELENGTH;
+        final double bulkBTrack   = com.mygame.core.GameConfig.BULK_B_LATERAL_TRACK_RATE; // convergence rate
+
+
+
 
 
         List<Vector2D> path = c.getPath();                // from ⟶ bends ⟶ to
@@ -59,7 +85,10 @@ public final class MovementSystem implements MovementStrategy {
         for (Iterator<Connection.PacketOnWire> it = c.inTransitIterator(); it.hasNext(); ) {
 
             Connection.PacketOnWire pow = it.next();
-            Packet pkt = pow.pkt;                         // convenience ref
+            Packet pkt = pow.pkt;// convenience ref
+
+
+
 
             /* 1 ─ physics:  a → v → x  */
             pkt.setVelocity( pkt.getVelocity()
@@ -107,6 +136,170 @@ public final class MovementSystem implements MovementStrategy {
 
 
 
+            // ---- ConfidentialSmallPacket: constant 2D speed unless slowing near busy dest ----
+            if (pkt instanceof com.mygame.model.packet.confidentialPacket.types.ConfidentialSmallPacket) {
+                boolean destBusy = (c.getTo() != null
+                        && c.getTo().getOwner() != null
+                        && !c.getTo().getOwner().getQueuedPackets().isEmpty());
+
+                assert c.getTo() != null;
+                double distToDest = pkt.getPosition().distanceTo(c.getTo().getCenter());
+
+                // choose target speed (pure scalar), direction stays whatever it currently is
+                double targetSpeed = base;
+                if (destBusy && distToDest <= Rslow) targetSpeed = base * slowFac;
+
+                // soft stop just outside the arrive ring
+                double minStopDist = ARRIVE_R + margin;
+                if (destBusy && distToDest <= minStopDist) targetSpeed = 0.0;
+
+                // smooth toward target speed without touching direction (no projection)
+                Vector2D v = pkt.getVelocity();
+                double current = v.length();
+                if (current > 1e-9) {
+                    double k = 1.0 - Math.exp(-rate * dt);                    // 0..1
+                    double newSpeed = current + (targetSpeed - current) * k;  // scalar blend
+                    double scale = newSpeed / current;
+                    pkt.setVelocity(v.multiplied(scale));                     // scale the 2D vector
+                } else {
+                    // if we're at rest and should move, give it a direction along the path segment
+                    if (targetSpeed > 0) {
+                        Vector2D[] pts2 = path.toArray(Vector2D[]::new);
+                        Vector2D dir = pts2[seg + 1].subtracted(pts2[seg]).normalized();
+                        pkt.setVelocity(dir.multiplied(targetSpeed));
+                    } else {
+                        pkt.setVelocity(new Vector2D());
+                    }
+                }
+            }
+            // ---- ConfidentialLargePacket: maintain spacing by moving fwd/back along the wire ----
+            if (pkt instanceof com.mygame.model.packet.confidentialPacket.types.ConfidentialLargePacket) {
+
+                final double D        = com.mygame.core.GameConfig.CLP_TARGET_GAP;
+                final double vmaxFwd  = com.mygame.core.GameConfig.CLP_MAX_SPEED_FWD;
+                final double vmaxBack = com.mygame.core.GameConfig.CLP_MAX_SPEED_BACK;
+                final double rateCLP  = com.mygame.core.GameConfig.CLP_LERP_RATE;
+
+
+                // Current segment tangent for direction (we already computed seg & pts above)
+                Vector2D tangent = pts[seg + 1].subtracted(pts[seg]).normalized();
+
+                // Find nearest neighbors on THIS wire by arc-length s
+                double sSelf = pow.s;
+                double nearestAhead  = Double.POSITIVE_INFINITY; // Δs > 0, smallest
+                double nearestBehind = Double.POSITIVE_INFINITY; // |Δs| for Δs < 0, smallest
+
+                for (ListIterator<Connection.PacketOnWire> jt = c.inTransitIterator(); jt.hasNext(); ) {
+                    Connection.PacketOnWire other = jt.next();
+                    if (other == pow) continue;
+                    double ds = other.s - sSelf;
+                    if (ds > 0) {
+                        // ahead
+                        if (ds < nearestAhead) nearestAhead = ds;
+                    } else if (ds < 0) {
+                        // behind (store absolute)
+                        double behind = -ds;
+                        if (behind < nearestBehind) nearestBehind = behind;
+                    }
+                }
+
+                // Compute "pressures" to increase spacing:
+                // - If someone is too close ahead (< D), push backward (negative speed).
+                // - If someone is too close behind (< D), push forward (positive speed).
+                double pAhead  = (nearestAhead  < D) ? (1.0 - (nearestAhead  / D)) : 0.0; // 0..1
+                double pBehind = (nearestBehind < D) ? (1.0 - (nearestBehind / D)) : 0.0; // 0..1
+
+                // Desired signed speed: positive → forward, negative → backward
+                double targetSpeed = (pBehind * vmaxFwd) - (pAhead * vmaxBack);
+
+                // If nothing is close on either side, no need to drift: hold position (targetSpeed = 0)
+                // (If you prefer slow cruising instead, set a small bias here.)
+                if (pAhead == 0.0 && pBehind == 0.0) {
+                    targetSpeed = 0.0;
+                }
+
+                // Smooth speed toward target without messing with 2D direction math
+                Vector2D v = pkt.getVelocity();
+                double currentSpeed = v.length();
+
+                // Determine current direction sign relative to tangent
+                double sign = (currentSpeed > 1e-9 && v.dot(tangent) < 0) ? -1.0 : +1.0;
+                double currentSigned = currentSpeed * sign;
+
+                double k = 1.0 - Math.exp(-rateCLP * dt);          // 0..1 smoothing
+                double newSigned = currentSigned + (targetSpeed - currentSigned) * k;
+
+                // Rebuild velocity strictly along the wire (this packet is "disciplinary")
+                Vector2D newV = tangent.multiplied(newSigned);
+                pkt.setVelocity(newV);
+            }
+            // 3c) BulkPacketA: constant speed on straight, accelerate through bends (“curves”)
+            if (pkt instanceof BulkPacketA) {
+                // Tangent of the current straight segment
+                Vector2D tangent = pts[seg + 1].subtracted(pts[seg]).normalized();
+
+                // Are we inside a bend zone near the next vertex?
+                boolean inCurve = pts[seg + 1].distanceTo(proj.point) <= curveZoneR;
+
+                Vector2D v = pkt.getVelocity();
+                double speed = v.length();
+
+                if (!inCurve) {
+                    // Clamp to flat constant speed and align to tangent
+                    if (speed == 0) {
+                        pkt.setVelocity(tangent.multiplied(bulkFlatSpeed));
+                    } else {
+                        pkt.setVelocity(tangent.multiplied(bulkFlatSpeed));
+                    }
+                } else {
+                    // Apply tangential acceleration, limited by bulkCurveVmax
+                    double newSpeed = Math.min(bulkCurveVmax, speed + bulkCurveAcc * dt);
+                    pkt.setVelocity(tangent.multiplied(newSpeed));
+                }
+            }
+            // 3e) BulkPacketB: constant forward speed; periodic lateral deviation like Impact
+            if (pkt instanceof BulkPacketB) {
+                // tangent & normal at the current segment
+                Vector2D tangent = pts[seg + 1].subtracted(pts[seg]).normalized();
+                Vector2D normal  = new Vector2D(-tangent.y(), tangent.x()); // 90° left
+
+                // target lateral offset as a function of arc-length s
+                // offset(s) = A * sin(2π * s / λ)
+                double phase = (2.0 * Math.PI / Math.max(1e-6, bulkBWave)) * pow.s;
+                double desiredOffset = bulkBAmpl * Math.sin(phase);
+
+                // current lateral offset relative to the path's closest point
+                Vector2D toPos   = pkt.getPosition().subtracted(proj.point);
+                double   curOff  = toPos.dot(normal); // signed distance off the wire
+
+                // drive the packet’s center toward the desired lateral position
+                // v_lateral ≈ (desired - current) * rate
+                double k = 1.0 - Math.exp(-bulkBTrack * dt);         // [0..1] smoothing
+                double targetLateralSpeed = (desiredOffset - curOff) * (bulkBTrack); // px/s
+                double newLateralSpeed    = (1.0 - k) * (toPos.dot(normal) /*proxy, no speed*/) + k * targetLateralSpeed;
+
+                // compose final velocity: constant forward + lateral correction
+                Vector2D forwardV = tangent.multiplied(bulkBSpeed);
+                Vector2D lateralV = normal.multiplied(newLateralSpeed);
+
+                pkt.setVelocity(forwardV.added(lateralV));
+
+                // optional: clamp absolute lateral deviation so we don't "fall off"
+                // keep it comfortably within the DEAD_R guard
+                double maxSafe = 0.6 * DEAD_R;
+                if (Math.abs(desiredOffset) > maxSafe) {
+                    // scale desired amplitude if config is too large relative to DEAD_R
+                    double scale = maxSafe / Math.abs(desiredOffset);
+                    pkt.setVelocity(forwardV.added(normal.multiplied(newLateralSpeed * scale)));
+                }
+            }
+
+
+
+
+
+
+
             /* 2 ─ arrival check (true geometric distance to the port centre) */
             if (pkt.getPosition().distanceTo( c.getTo().getCenter() ) <= ARRIVE_R) {
                 c.getTo().deliver(pkt);                   // node handles onDelivered()
@@ -131,20 +324,20 @@ public final class MovementSystem implements MovementStrategy {
     }
 
     /** Linear interpolation along a poly-line by distance s. */
-    private Vector2D interpolate(Vector2D[] pts, double s) {
-        for (int i = 0; i < pts.length - 1; i++) {
-            double seg = pts[i].distanceTo(pts[i + 1]);
-            if (s <= seg) {
-                double t = s / seg;
-                return new Vector2D(
-                        pts[i].x() + t * (pts[i + 1].x() - pts[i].x()),
-                        pts[i].y() + t * (pts[i + 1].y() - pts[i].y())
-                );
-            }
-            s -= seg;
-        }
-        return pts[pts.length - 1].copy(); // end of path
-    }
+//    private Vector2D interpolate(Vector2D[] pts, double s) {
+//        for (int i = 0; i < pts.length - 1; i++) {
+//            double seg = pts[i].distanceTo(pts[i + 1]);
+//            if (s <= seg) {
+//                double t = s / seg;
+//                return new Vector2D(
+//                        pts[i].x() + t * (pts[i + 1].x() - pts[i].x()),
+//                        pts[i].y() + t * (pts[i + 1].y() - pts[i].y())
+//                );
+//            }
+//            s -= seg;
+//        }
+//        return pts[pts.length - 1].copy(); // end of path
+//    }
 
     private record Projection(Vector2D point, double s, double distance){}
     private Projection closestPointOnPath(Vector2D p, List<Vector2D> pts){

@@ -1,11 +1,12 @@
 package com.mygame.model.packet.bulkPacket.types;
 
+import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.model.packet.bulkPacket.BulkPacket;
 
 public final class BulkPacketA extends BulkPacket {
 
-    public BulkPacketA(Vector2D spawn) { super(spawn, 8); }
+    public BulkPacketA(Vector2D spawn,int payload,  double health) { super(spawn, payload, health);}
 
     @Override
     public int getCoinValue() { return 8; }        // طبق سند
@@ -15,7 +16,7 @@ public final class BulkPacketA extends BulkPacket {
 
     @Override
     public BulkPacketA copy() {
-        BulkPacketA cp = new BulkPacketA(pos.copy());
+        BulkPacketA cp = new BulkPacketA(pos.copy(), payloadSize, getHealth());
         cp.heavyId = this.heavyId;
         cp.setVelocity(vel.copy());
         cp.setAcceleration(getAcceleration().copy());

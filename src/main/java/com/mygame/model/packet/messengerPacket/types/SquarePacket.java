@@ -6,8 +6,8 @@ import com.mygame.model.packet.Packet;
 import com.mygame.model.packet.messengerPacket.MessengerPacket;
 
 public final class SquarePacket extends MessengerPacket {
-    public SquarePacket(Vector2D spawn, int health) {
-        super(spawn, Shape.SQUARE);  // 2 = health (aka size/strength)
+    public SquarePacket(Vector2D spawn, double health, double radius) {
+        super(spawn, Shape.SQUARE, radius);  // 2 = health (aka size/strength)
         this.health = health;
     }
 
@@ -16,7 +16,7 @@ public final class SquarePacket extends MessengerPacket {
     @Override public Shape shape() { return Shape.SQUARE; }
 
     @Override public SquarePacket copy() {
-        SquarePacket copy = new SquarePacket(pos.copy(), getHealth());
+        SquarePacket copy = new SquarePacket(pos.copy(), getHealth(), getRadius());
         copy.setVelocity(vel.copy());
         return copy;
     }

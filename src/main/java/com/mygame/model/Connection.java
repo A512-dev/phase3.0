@@ -1,16 +1,22 @@
     // ───────────── com/mygame/model/Connection.java
     package com.mygame.model;
 
+    import com.mygame.core.GameConfig;
     import com.mygame.engine.physics.Vector2D;
     import com.mygame.model.node.Node;
 
     import com.mygame.model.packet.Packet;
-    import com.mygame.service.CoinService;
+    import com.mygame.model.packet.ProtectedPacket;
+    import com.mygame.model.packet.bulkPacket.types.BulkPacketA;
+    import com.mygame.model.packet.bulkPacket.types.BulkPacketB;
+    import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
+    import com.mygame.model.packet.confidentialPacket.types.ConfidentialLargePacket;
+    import com.mygame.model.packet.confidentialPacket.types.ConfidentialSmallPacket;
+    import com.mygame.model.packet.messengerPacket.types.InfinityPacket;
+    import com.mygame.model.packet.messengerPacket.types.SquarePacket;
+    import com.mygame.model.packet.messengerPacket.types.TrianglePacket;
 
-    import java.util.ArrayList;
-    import java.util.Iterator;
-    import java.util.List;
-    import java.util.ListIterator;
+    import java.util.*;
 
     /** Phase-2 wire: straight segments + up to 3 user-defined bends. */
     public final class Connection {
@@ -183,11 +189,120 @@
             Vector2D dir = path.get(1).subtracted(path.get(0)).normalized();
             double   v0  = Math.max(p.speed(), 30.0);   // 30px/s حداقل
 
-            p.setVelocity(dir.multiplied(v0));
+            if (p instanceof SquarePacket) {
+                if (getFrom().getType() == Port.PortType.SQUARE) {
+                    v0 = GameConfig.SPEED_OF_SQUARE_PACKET_SQUARE_PORT;
+                    p.setVelocity(dir.multiplied(v0));
+                    p.setAcceleration(new Vector2D());
+                }
+                else if (getFrom().getType() == Port.PortType.TRIANGLE) {
+                    v0 = GameConfig.SPEED_OF_SQUARE_PACKET_TRIANGLE_PORT;
+                    p.setVelocity(dir.multiplied(v0));
+                    p.setAcceleration(new Vector2D());
+                }
+            }
+            else if (p instanceof TrianglePacket) {
+                if (getFrom().getType() == Port.PortType.TRIANGLE) {
+                    v0 = GameConfig.SPEED_OF_TRIANGLE_PACKET_TRIANGLE_PORT;
+                    p.setVelocity(dir.multiplied(v0));
+                    p.setAcceleration(new Vector2D());
+                }
+                else if (getFrom().getType() == Port.PortType.SQUARE) {
+                    v0 = GameConfig.SPEED_OF_TRIANGLE_PACKET_SQUARE_PORT;
+                    p.setVelocity(dir.multiplied(v0));
+                    double a0 = GameConfig.ACCEL_OF_TRIANGLE_PACKET_SQUARE_PORT;
+                    p.setAcceleration(dir.multiplied(a0));
+                }
+            }
+            else if (p instanceof InfinityPacket) {
+                // TODO: 8/13/2025 infinity packet compatible?
+            }
+            else if (p instanceof ProtectedPacket) {
+                if (((ProtectedPacket) p).getMovementType() == ProtectedPacket.MovementType.SQUARE) {
+                    if (getFrom().getType() == Port.PortType.SQUARE) {
+                        v0 = GameConfig.SPEED_OF_SQUARE_PACKET_SQUARE_PORT;
+                        p.setVelocity(dir.multiplied(v0));
+                        p.setAcceleration(new Vector2D());
+                    }
+                    else if (getFrom().getType() == Port.PortType.TRIANGLE) {
+                        v0 = GameConfig.SPEED_OF_SQUARE_PACKET_TRIANGLE_PORT;
+                        p.setVelocity(dir.multiplied(v0));
+                        p.setAcceleration(new Vector2D());
+                    }
+                }
+                else if (((ProtectedPacket) p).getMovementType() == ProtectedPacket.MovementType.TRIANGLE) {
+                    if (getFrom().getType() == Port.PortType.TRIANGLE) {
+                        v0 = GameConfig.SPEED_OF_TRIANGLE_PACKET_TRIANGLE_PORT;
+                        p.setVelocity(dir.multiplied(v0));
+                        p.setAcceleration(new Vector2D());
+                    }
+                    else if (getFrom().getType() == Port.PortType.SQUARE) {
+                        v0 = GameConfig.SPEED_OF_TRIANGLE_PACKET_SQUARE_PORT;
+                        p.setVelocity(dir.multiplied(v0));
+                        double a0 = GameConfig.ACCEL_OF_TRIANGLE_PACKET_SQUARE_PORT;
+                        p.setAcceleration(dir.multiplied(a0));
+                    }
+                }
+                else{
+                    // TODO: 8/13/2025 infinity packet compatible?
+                }
+            }
+            else if (p instanceof ConfidentialSmallPacket) {
+                v0 = GameConfig.SPEED_OF_CONFIDENTIAL_SMALL_PACKET;
+                p.setVelocity(dir.multiplied(v0));
+                p.setAcceleration(new Vector2D());
+                /**
+                 * این پکت با سرعت ثابت روی اتصالات حرکت می‌کند
+                 * (مگر در اثر Impact)
+                 * اما در صورتی که چنین پکتی در مسیر حرکت به سمت یک سیستم از شبکه قرار داشته باشد و پکت دیگری در این سیستم ذخیره شده باشد،
+                 * سرعت خود را حد مشخصی کاهش می‌دهد تا همزمان با پکت دیگری در این سیستم حضور نداشته باشد
+                 * complete the movement logic in updateWire()
+                 */
+            }
+            else if (p instanceof ConfidentialLargePacket) {
+                v0 = GameConfig.SPEED_OF_CONFIDENTIAL_Large_PACKET;
+                p.setVelocity(dir.multiplied(v0));
+                p.setAcceleration(new Vector2D());
+                /**
+                 این پکت در طی عبور یک پکت محرمانه عادی (مورد قبلی) از یک سیستم
+                 VPN
+                 به وجود می‌آید.
+                 این پکت در هر لحظه تلاش خواهد کرد
+                 فاصله مشخصی را (با حرکت به سمت جلو یا عقب روی اتصالات شبکه)
+                 با تمام پکت‌های دیگر موجود روی سیم‌های شبکه حفظ کند
+                 * complete the movement logic in updateWire()
+                 */
+            }
+            else if (p instanceof BulkPacketA) {
+                /**
+                 * حرکت آن بر روی سیم های صاف با سرعت ثابت
+                 * و بر روی انحنا‌ها، با شتاب ثابت است.
+                 * (مگر در اثر Impact)
+                 * * complete the movement logic in updateWire()
+                 */
+                v0 = GameConfig.SPEED_OF_BULKPACKET_A_PACKET;
+                p.setVelocity(dir.multiplied(v0));
+                p.setAcceleration(new Vector2D());
+            }
+            else if (p instanceof BulkPacketB) {
+                /**
+                 * حرکت این پکت روی تمام سیم‌ها با سرعت ثابت است
+                 * اما به ازای طی مسافت مشخصی روی سیم‌ها،
+                 * مرکز آن به مقدار مشخصی از روی سیم منحرف می‌شود.
+                 * (مشابه اثر Impact روی حرکت پکت‌های دیگر در حال حرکت)
+                 * * complete the movement logic in updateWire()
+                 */
+                v0 = GameConfig.SPEED_OF_BULKPACKET_B_PACKET;
+                p.setVelocity(dir.multiplied(v0));
+                p.setAcceleration(new Vector2D());
+            }
+            // TODO: 8/13/2025 complete the movement logic in updateWire()
+
+
+//            p.setVelocity(dir.multiplied(v0));
             p.setPosition(path.get(0));  // from.getCenter()
             p.setRoute(from, to);
             p.attachToWire(this);
-
             inTransit.add(new PacketOnWire(p));
         }
 

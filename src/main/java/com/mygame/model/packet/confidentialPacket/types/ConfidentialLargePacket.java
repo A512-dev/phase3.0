@@ -11,11 +11,11 @@ import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
 public final class ConfidentialLargePacket extends ConfidentialPacket {
 
     public ConfidentialLargePacket(Vector2D spawn) {
-        super(spawn, 6); // اندازه 6 واحد
+        super(spawn, GameConfig.CONFIDENTIAL_LARGE_PACKET_LIFE, GameConfig.CONFIDENTIAL_LARGE_PACKET_SIZE); // اندازه 6 واحد
     }
 
     @Override
-    public int getCoinValue() { return 4; }
+    public int getCoinValue() { return GameConfig.CONFIDENTIAL_LARGE_PACKET_COIN_VALUE; }
 
     @Override
     public Shape shape() { return Shape.CONFIDENTIAL_B; }

@@ -6,10 +6,16 @@ import com.mygame.engine.world.World;
 import com.mygame.model.PacketEventListener;
 import com.mygame.model.Port;
 import com.mygame.model.packet.Packet;
+import com.mygame.model.packet.ProtectedPacket;
+import com.mygame.model.packet.TrojanPacket;
+import com.mygame.model.packet.bulkPacket.BulkPacket;
+import com.mygame.model.packet.messengerPacket.types.SquarePacket;
+import com.mygame.model.packet.messengerPacket.types.TrianglePacket;
 import com.mygame.snapshot.NodeSnapshot;
 
 import javax.sound.midi.Soundbank;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /** Core data + API every network node shares. */
 public abstract class Node implements PacketEventListener {
@@ -22,6 +28,8 @@ public abstract class Node implements PacketEventListener {
     /* ── ports ─────────────────────────────────────────────── */
     protected final List<Port> inputs  = new ArrayList<>();
     protected final List<Port> outputs = new ArrayList<>();
+
+
 
     /* ── packet queue (FIFO) ───────────────────────────────── */
     protected final Deque<Packet> queue = new ArrayDeque<>();
@@ -72,13 +80,107 @@ public abstract class Node implements PacketEventListener {
     }
 
     /* ── queue helpers ────────────────────────────────────── */
-    public void enqueuePacket(Packet p){ queue.addLast(p); }
+    public void enqueuePacket(Packet p){
+        if (queue.size()>=5)
+            p.setAlive(false);
+        else
+            queue.addLast(p);
+    }
     protected void emitQueued(List<Packet> worldPackets){
         if(!queue.isEmpty()){
-            Packet p = queue.removeFirst();
-            p.setMobile(true);
-            worldPackets.add(p);
-            System.out.println("Packet Added to World");
+            Packet p = queue.poll();
+            if (p instanceof SquarePacket) {
+                List<Port> squarePorts = outputs.stream()
+                        .filter(port -> port.getType() == Port.PortType.SQUARE)
+                        .collect(Collectors.toList());
+
+                if (squarePorts.size()>0) {
+                    for (Port out : squarePorts) {
+                        if (out.getConnectedPort() != null && out.canEmit()) {
+                            out.getWire().transmit(p);
+                            p.setMobile(true);
+                            worldPackets.add(p);
+                            out.resetCooldown();
+                            return;                       // emit one packet per update
+                        }
+                    }
+                }
+            }
+            if (p instanceof TrianglePacket) {
+                List<Port> trianglePorts = outputs.stream()
+                        .filter(port -> port.getType() == Port.PortType.TRIANGLE)
+                        .collect(Collectors.toList());
+
+                if (trianglePorts.size()>0) {
+                    for (Port out : trianglePorts) {
+                        if (out.getConnectedPort() != null && out.canEmit()) {
+                            out.getWire().transmit(p);
+                            p.setMobile(true);
+                            worldPackets.add(p);
+                            out.resetCooldown();
+                            return;                       // emit one packet per update
+                        }
+                    }
+                }
+            }
+            if (p instanceof TrojanPacket) {
+                if (((TrojanPacket) p).getOriginalPacket() instanceof SquarePacket) {
+                    List<Port> trianglePorts = outputs.stream()
+                            .filter(port -> port.getType() == Port.PortType.TRIANGLE)
+                            .collect(Collectors.toList());
+
+                    if (trianglePorts.size()>0) {
+                        for (Port out : trianglePorts) {
+                            if (out.getConnectedPort() != null && out.canEmit()) {
+                                out.getWire().transmit(p);
+                                p.setMobile(true);
+                                worldPackets.add(p);
+                                out.resetCooldown();
+                                return;                       // emit one packet per update
+                            }
+                        }
+                    }
+                }
+                else if (((TrojanPacket) p).getOriginalPacket() instanceof TrianglePacket) {
+                    List<Port> squarePorts = outputs.stream()
+                            .filter(port -> port.getType() == Port.PortType.SQUARE)
+                            .collect(Collectors.toList());
+
+                    if (squarePorts.size()>0) {
+                        for (Port out : squarePorts) {
+                            if (out.getConnectedPort() != null && out.canEmit()) {
+                                out.getWire().transmit(p);
+                                p.setMobile(true);
+                                worldPackets.add(p);
+                                out.resetCooldown();
+                                return;                       // emit one packet per update
+                            }
+                        }
+                    }
+                }
+            }
+            if (p instanceof ProtectedPacket) {
+                for (Port out : outputs) {
+                    if (out.getConnectedPort() != null && out.canEmit()) {
+                        out.getWire().transmit(p);
+                        p.setMobile(true);
+                        worldPackets.add(p);
+                        out.resetCooldown();
+                        return;                       // emit one packet per update
+                    }
+                }
+            }
+
+            for (Port out : outputs) {
+                if (out.getConnectedPort() != null && out.canEmit()) {
+
+                    out.getWire().transmit(p);
+                    p.setMobile(true);
+                    worldPackets.add(p);
+                    out.resetCooldown();
+                    break;                       // emit one packet per update
+                }
+            }
         }
     }
 
@@ -86,13 +188,30 @@ public abstract class Node implements PacketEventListener {
     /* ── hooks every concrete node must implement ─────────── */
     /** Called exactly once when packet *enters* this node. */
     public abstract void onDelivered(Packet p);
-    public abstract void onDelivered(Packet p, Port port);
+    public void onDelivered(Packet p, Port port) {
+        if (p instanceof BulkPacket) {
+            queue.clear();
+            queue.add(p);
+        }
+    }
     public abstract void onLost(Packet p);
 
 
 
     /** Called each frame. Subclass usually calls emitQueued(). */
-    public abstract void update(double dt, List<Packet> worldPackets);
+    public void update(double dt, List<Packet> worldPackets) {
+        for (Port port: getPorts()) {
+            if (port.isEmitting()) {
+                port.tickCooldown(dt);
+                System.out.println("port CoolDown subtracted dt");
+            }
+
+        }
+        if (!queue.isEmpty()) {
+            emitQueued(worldPackets);
+            System.out.println("Node Emitted Queued");
+        }
+    }
 
     public List<Port> getPorts() {
         List<Port> allPorts = new ArrayList<>();
@@ -152,4 +271,11 @@ public abstract class Node implements PacketEventListener {
     public NodeSnapshot toSnapshot() { return NodeSnapshot.of(this); }
 
 
+    protected boolean active = true;
+    protected boolean isActive() {
+        return active;
+    };
+    protected void setActive(boolean active) {
+        this.active = active;
+    };
 }

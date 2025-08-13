@@ -36,7 +36,14 @@ public final class SpyNode extends Node {
                 .filter(s -> s != this && !s.connectedOutputs().isEmpty())
                 .collect(Collectors.toList());
         if (candidates.isEmpty()) return null;
-        return candidates.get(RNG.nextInt(candidates.size()));
+        for (SpyNode spyNode: candidates) {
+            SpyNode candidate = candidates.get(RNG.nextInt(candidates.size()));
+            for (Port port: candidate.getOutputs()) {
+                if (!port.isEmitting() && port.getConnectedPort()!=null && port.getConnectedPort().getOwner().isActive())
+                    return candidate;
+            }
+        }
+        return null;
     }
 
     /* ---------- Node hooks ---------- */
@@ -47,6 +54,7 @@ public final class SpyNode extends Node {
     /** main entry: decide what to do with the packet */
     @Override
     public void onDelivered(Packet p, Port at) {
+        super.onDelivered(p, at);
         // 1) confidential → removed
         if (p.isConfidentialPacket()) {
             p.setAlive(false);

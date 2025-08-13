@@ -1,20 +1,19 @@
 // MessengerTrianglePacket.java
 package com.mygame.model.packet.messengerPacket.types;
 import com.mygame.engine.physics.Vector2D;
-import com.mygame.model.packet.Packet;
 import com.mygame.model.packet.messengerPacket.MessengerPacket;
 
 public final class TrianglePacket extends MessengerPacket {
-    public TrianglePacket(Vector2D spawn){
-        super(spawn, Shape.TRIANGLE);
-        health = 10;
+    public TrianglePacket(Vector2D spawn, double health, double radius){
+        super(spawn, Shape.TRIANGLE, radius);
+        this.health = health;
     }
     @Override public int getCoinValue(){ return 3; }
     @Override public Shape shape(){ return Shape.TRIANGLE; }
 
     @Override
     public TrianglePacket copy() {
-        TrianglePacket newT = new TrianglePacket(pos);
+        TrianglePacket newT = new TrianglePacket(pos, getHealth(), getRadius());
         newT.setVelocity(vel);
         return newT;
     }

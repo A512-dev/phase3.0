@@ -7,10 +7,64 @@ public final class GameConfig {
 
     public static final int CONFIDENTIAL_SMALL_PACKET_LIFE = 4;
     public static final int CONFIDENTIAL_SMALL_PACKET_COIN_VALUE = 3;
+    public static final double CSP_APPROACH_RADIUS = 120.0;     // start slowing within this many px
+    public static final double CSP_SLOW_FACTOR     = 0.35;      // slow to 35% of base when busy
+    public static final double CSP_SOFTSTOP_MARGIN = 8.0;       // keep at least this far outside ARRIVE_R
+    public static final double CSP_LERP_RATE       = 12.0;      // smoothing (1/s) for speed change
+
+
     public static final int CONFIDENTIAL_LARGE_PACKET_LIFE = 6;
     public static final int CONFIDENTIAL_LARGE_PACKET_COIN_VALUE = 4;
+    // ConfidentialLargePacket spacing control
+    public static final double CLP_TARGET_GAP       = 9.0;  // desired min spacing along wire (px)
+    public static final double CLP_MAX_SPEED_FWD    = 22.0; // cap forward speed when adjusting (px/s)
+    public static final double CLP_MAX_SPEED_BACK   = 16.0; // cap backward speed when adjusting (px/s)
+    public static final double CLP_LERP_RATE        = 1.0;  // speed smoothing rate (1/s)
+
     public static final double STRENGTH_OF_WAVE = 1.200;
     public static final double RADIUS_OF_WAVE = 40.0;
+    public static final int CONFIDENTIAL_LARGE_PACKET_SIZE = 10;
+
+    public static final double SPEED_OF_SQUARE_PACKET_SQUARE_PORT = 20.0;
+    public static final double SPEED_OF_SQUARE_PACKET_TRIANGLE_PORT = 40.0;
+
+    public static final int CONFIDENTIAL_SMALL_PACKET_SIZE = 10;
+
+    public static final int BULK_PACKET_A_LIFE = 8;
+    public static final int BULK_PACKET_A_PAYLOAD = 8;
+    public static final int BULK_PACKET_B_LIFE = 10;
+    public static final int BULK_PACKET_B_PAYLOAD = 10;
+
+    public static final int BIT_PACKET_PAYLOAD = 1;
+    public static final int BIT_PACKET_LIFE = 1;
+
+
+    public static final int MAX_QUEUE = 5;
+    public static final double SPEED_OF_TRIANGLE_PACKET_TRIANGLE_PORT = 30.0;
+    public static final double SPEED_OF_TRIANGLE_PACKET_SQUARE_PORT = 30.0;
+    public static final double ACCEL_OF_TRIANGLE_PACKET_SQUARE_PORT = 1.5;
+    public static final double SPEED_OF_CONFIDENTIAL_SMALL_PACKET = 25;
+    public static final double SPEED_OF_BULKPACKET_A_PACKET = 20;
+    public static final double SPEED_OF_BULKPACKET_B_PACKET = 10;
+    public static final double BULK_B_SPEED                 = 10;  // px/s constant forward speed
+    public static final double BULK_B_DEVIATION_AMPL        = 5;   // px lateral amplitude
+    public static final double BULK_B_DEVIATION_WAVELENGTH  = 160;  // px per cycle along s
+    public static final double BULK_B_LATERAL_TRACK_RATE    = 18;   // 1/s how fast it “locks” to target offset
+
+    public static final double BULK_A_ACCEL_CURVE = 5;
+    public static final double BULK_A_VMAX_CURVE = 100;
+    public static final double CURVE_ZONE_RADIUS = 8;
+    public static double squareSize = 10;
+    public static double triangleSize = 10;
+    public static double infinitySize = 10;
+    public static double bitPacketLife = 1;
+    public static double bitPacketSize = 10;
+
+    public static double bulkPacketSize = 10;
+
+    public static double trojanPacketSize = 10;
+    public static double SPEED_OF_CONFIDENTIAL_Large_PACKET = 15;
+
 
     /* --- node geometry --- */
     public final int nodeWidth           = 90;

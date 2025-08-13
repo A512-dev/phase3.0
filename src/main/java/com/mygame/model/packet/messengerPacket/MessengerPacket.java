@@ -5,8 +5,8 @@ import com.mygame.model.packet.Packet;
 
 public class MessengerPacket extends Packet {
     private final Shape packetShape;
-    public MessengerPacket(Vector2D spawn, Shape packetShape) {
-        super(spawn, 1);
+    public MessengerPacket(Vector2D spawn, Shape packetShape, double radius) {
+        super(spawn, 1, radius);
         this.packetShape = packetShape;
     }
 
@@ -21,7 +21,7 @@ public class MessengerPacket extends Packet {
         return packetShape;
     }
     @Override public MessengerPacket copy(){
-        MessengerPacket clone = new MessengerPacket(pos.copy(), packetShape);
+        MessengerPacket clone = new MessengerPacket(pos.copy(), packetShape, radius);
         clone.setVelocity(this.getVelocity().copy());
         clone.setAcceleration(this.getAcceleration().copy());
         clone.setMobile(this.isMobile());

@@ -13,6 +13,7 @@ import com.mygame.model.Port.*;
 import com.mygame.model.node.BasicNode;
 import com.mygame.model.node.Node;
 import com.mygame.model.packet.Packet;
+import com.mygame.model.packet.TrojanPacket;
 import com.mygame.model.packet.messengerPacket.types.SquarePacket;
 import com.mygame.model.packet.messengerPacket.types.TrianglePacket;
 import com.mygame.model.powerup.ActivePowerUp;
@@ -127,20 +128,28 @@ public class World {
                 || timeController.isFrozen()
                 || timeController.isPaused() )
             return;
+
         if (simTimeAccumulator==0)
             System.out.println("Timer Started");
         simTimeAccumulator += dt;
 
-        System.out.println("WorldPackets update");
         //System.out.println("WorldPackets="+ packets.size());
 //        // 1) Move everything
 //        for (Packet p : packets) {
 //            System.out.println(1);
 //            p.update(dt);
 //        }
+
         // 2) physics resolution
         collisionSystem.step(packets, dt);
         waveSystem.update(dt, connections, false);
+
+
+        // 4) per-packet behavior ticks
+        applyPacketRules(dt);
+
+        // 5) passive node auras
+        applyNodeAreaEffects(dt);
 
 
         // 3) Cull off-track & dead; handle arrivals
@@ -433,9 +442,9 @@ public class World {
             Packet[] p = new Packet[(int) cfg.numberOfPacketsLevel1];
             for (int j=0; j<cfg.numberOfPacketsLevel1; j++) {
                 if (j%2==0)
-                    p[j] = new SquarePacket(pos, GameConfig.squareLife);
+                    p[j] = new SquarePacket(pos, GameConfig.squareLife, GameConfig.squareSize);
                 else
-                    p[j] = new TrianglePacket(pos);
+                    p[j] = new TrianglePacket(pos, GameConfig.triangleLife, GameConfig.triangleSize);
                 p[j].setMobile(false);
                 baseLeft.enqueuePacket(p[j]);
                 hud.incrementTotalPackets();
@@ -477,8 +486,8 @@ public class World {
                     baseLeft.getPosition().x() + baseLeft.getWidth()/2,
                     baseLeft.getPosition().y() + baseLeft.getHeight()/2);
             Packet p = (Math.random() > 0.5)
-                    ? new SquarePacket(pos, GameConfig.squareLife)
-                    : new TrianglePacket(pos);
+                    ? new SquarePacket(pos, GameConfig.squareLife, GameConfig.squareSize)
+                    : new TrianglePacket(pos, GameConfig.triangleLife, GameConfig.triangleSize);
             p.setMobile(false);
             baseLeft.enqueuePacket(p);
             hud.incrementTotalPackets();
@@ -486,6 +495,85 @@ public class World {
         nodes.forEach(n -> n.setPacketEventListener(hud));
         initialState = snapshot();
     }
+    /** Returns all live, mobile packets within radius r of point c. */
+    private List<Packet> packetsNear(Vector2D c, double r) {
+        double r2 = r * r;
+        List<Packet> out = new ArrayList<>();
+        for (Packet p : packets) {
+            if (!p.isAlive() || !p.isMobile()) continue;
+            if (p.getPosition().subtracted(c).lengthSq() <= r2)
+                out.add(p);
+        }
+        return out;
+    }
+    private void applyPacketRules(double dt) {
+        for (Packet p : packets) {
+            if (!p.isAlive()) continue;
+
+            // TODO: 8/12/2025 : packet rules:
+            // Example: SquarePacket slowly self-heals and gives small coins on long trips
+            // TODO: 8/12/2025 squareRules
+            if (p instanceof com.mygame.model.packet.messengerPacket.types.SquarePacket sq) {
+                // tiny passive heal
+                //sq.heal(2.0 * dt);                    // implement heal(double) on Packet if needed
+                // cap health inside Packet
+            }
+
+            // Example: TrianglePacket keeps higher forward speed on wires
+            // TODO: 8/12/2025 triangleRules
+            if (p instanceof com.mygame.model.packet.messengerPacket.types.TrianglePacket) {
+//                // small forward bias: a gentle push along current velocity
+//                Vector2D fwd = p.getVelocity().normalized();
+//                if (!Double.isNaN(fwd.x()) && !Double.isNaN(fwd.y()))
+//                    p.addImpulse(fwd.multiplied(10.0 * dt));   // feels “snappier” on bends
+            }
+
+            // Example: infected / trojan (if you have such a type) decays health
+            if (p.isTrojanPacket()) {                 // add isInfected() to Packet if applicable
+                p.damage(8.0 * dt);
+                if (!p.isAlive()) {
+                    if (eventListener != null) eventListener.onLost(p);
+                }
+            }
+        }
+    }
+    private void applyNodeAreaEffects(double dt) {
+        for (Node n : nodes) {
+            // AntiTrojanNode: cleans infected packets in a small radius
+            if (n instanceof com.mygame.model.node.AntiTrojanNode at) {
+                double R = 75;                          // or read from node
+                for (Packet p : packetsNear(n.getCenter(), R)) {
+                    if (p.isTrojanPacket()) {
+                        p = ((TrojanPacket) p).revert();             // implement on Packet
+                        // short cooldown on node? let the node carry its own cooldown flags if needed
+                        AudioManager.get().playFx("heal_ping");
+                    }
+                }
+            }
+//
+//            // SpeedPadNode: boosts speed of passing packets
+//            if (n instanceof com.mygame.model.node.SpeedPadNode sp) {
+//                double R = sp.getPadRadius();           // node API
+//                double boost = sp.getBoost();           // e.g., Δv magnitude
+//                for (Packet p : packetsNear(n.getCenter(), R)) {
+//                    Vector2D dir = p.getVelocity().normalized();
+//                    if (!Double.isNaN(dir.x()) && !Double.isNaN(dir.y()))
+//                        p.addImpulse(dir.multiplied(boost * dt));
+//                }
+//            }
+
+//            // SlowFieldNode: dampens velocity (sticky region)
+//            if (n instanceof com.mygame.model.node.SlowFieldNode sf) {
+//                double R = sf.getFieldRadius();
+//                double damp = sf.getDampingPerSec();    // e.g., 0.3 → 30%/s
+//                for (Packet p : packetsNear(n.getCenter(), R)) {
+//                    p.setVelocity(p.getVelocity().multiplied(Math.max(0.0, 1.0 - damp * dt)));
+//                }
+//            }
+        }
+    }
+
+
 
 
     /* expose it if UI / other classes need direct access */

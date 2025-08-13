@@ -8,7 +8,7 @@ import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
 public final class ConfidentialSmallPacket extends ConfidentialPacket {
 
     public ConfidentialSmallPacket(Vector2D spawn) {
-        super(spawn, GameConfig.CONFIDENTIAL_SMALL_PACKET_LIFE); // Size = 4 units
+        super(spawn, GameConfig.CONFIDENTIAL_SMALL_PACKET_LIFE, GameConfig.CONFIDENTIAL_SMALL_PACKET_SIZE); // Size = 4 units
     }
 
     @Override
