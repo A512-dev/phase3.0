@@ -39,7 +39,7 @@ public abstract class Packet implements PhysicsBody {
         noise += i;
     }
 
-    public enum Shape { SQUARE, TRIANGLE, INFINITY, HEXAGON, LOCK, BULK_A, CONFIDENTIAL_A, CONFIDENTIAL_B, BULK_B , TROJAN}
+    public enum Shape { SQUARE, TRIANGLE, INFINITY, HEXAGON, LOCK, BULK_A, CONFIDENTIAL_S, CONFIDENTIAL_L, BULK_B , TROJAN}
 
 
 

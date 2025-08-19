@@ -11,7 +11,8 @@ public record NodeSnapshot(
         int                      width,
         int                      height,
         List<PortSnapshot>       ports,
-        String                   kind     // “BasicNode”, “SpyNode”, …
+        Node.Type type,     // “BasicNode”, “SpyNode”, …
+        boolean isAllConnected
 ) {
 
     /** Factory – called by the World when it builds the frame snapshot */
@@ -21,7 +22,8 @@ public record NodeSnapshot(
                 (int) n.getWidth(),
                 (int) n.getHeight(),
                 n.getPorts().stream().map(PortSnapshot::of).toList(),
-                n.getClass().getSimpleName()
+                n.getNodeType(),
+                n.isAllConnected()
         );
     }
 }

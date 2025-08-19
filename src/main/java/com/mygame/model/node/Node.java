@@ -19,6 +19,15 @@ import java.util.stream.Collectors;
 
 /** Core data + API every network node shares. */
 public abstract class Node implements PacketEventListener {
+    public Type getNodeType() {
+        return nodeType;
+    }
+
+    public void setNodeType(Type nodeType) {
+        this.nodeType = nodeType;
+    }
+
+    Type nodeType;
 
     /* ── geometry ─────────────────────────────────────────── */
     protected final Vector2D position;     // top-left corner
@@ -278,4 +287,8 @@ public abstract class Node implements PacketEventListener {
     protected void setActive(boolean active) {
         this.active = active;
     };
+
+    public enum Type {
+        BASIC, SPY, VPN, SABOTEUR, MERGER, DISTRIBUTOR, ANTITROJAN
+    }
 }

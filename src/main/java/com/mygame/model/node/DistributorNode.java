@@ -17,7 +17,7 @@ import java.util.List;
 public final class DistributorNode extends Node {
     private final Deque<Packet> outbox = new ArrayDeque<>();
 
-    public DistributorNode(double x, double y, double w, double h) { super(x, y, w, h); }
+    public DistributorNode(double x, double y, double w, double h) { super(x, y, w, h); setNodeType(Type.DISTRIBUTOR);}
 
     @Override
     public void onLost(Packet p) {

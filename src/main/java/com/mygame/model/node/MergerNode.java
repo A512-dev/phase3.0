@@ -17,7 +17,7 @@ public final class MergerNode extends Node {
     private static final int   NEEDED_BITS = 6;
     private static final double RADIUS     = 60;
 
-    public MergerNode(double x, double y, double w, double h) { super(x, y, w, h); }
+    public MergerNode(double x, double y, double w, double h) { super(x, y, w, h); setNodeType(Type.MERGER);}
 
     @Override
     public void onLost(Packet p) {

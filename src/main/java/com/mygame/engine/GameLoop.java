@@ -1,5 +1,6 @@
 package com.mygame.engine;
 
+import com.mygame.engine.world.WorldController;
 import com.mygame.snapshot.WorldSnapshot;
 
 import java.util.concurrent.locks.LockSupport;

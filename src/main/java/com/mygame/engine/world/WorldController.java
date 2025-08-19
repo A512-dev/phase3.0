@@ -1,4 +1,4 @@
-package com.mygame.engine;
+package com.mygame.engine.world;
 
 import com.mygame.engine.modelUpdates.MovementSystem;
 import com.mygame.engine.world.World;

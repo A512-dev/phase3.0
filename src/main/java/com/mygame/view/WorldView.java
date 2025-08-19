@@ -1,7 +1,8 @@
 // ────────────────────────── com/mygame/view/WorldView.java
 package com.mygame.view;
 
-import java.awt.Graphics2D;
+import java.awt.*;
+
 import com.mygame.snapshot.WorldSnapshot;
 
 /** Renders one immutable snapshot of the world. No references to live state. */
@@ -12,6 +13,9 @@ public class WorldView {
     private final HUDView        hudView        = new HUDView();
 
     public void renderAll(Graphics2D g, WorldSnapshot snap) {
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,  RenderingHints.VALUE_ANTIALIAS_ON);
+
         snap.nodes().forEach(n -> systemNodeView.render(g, n));
         snap.connections().forEach(c -> connectionView.render(g, c));
         snap.packets().forEach(p -> packetView.render(g, p));

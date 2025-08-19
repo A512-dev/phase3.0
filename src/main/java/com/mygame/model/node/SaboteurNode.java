@@ -14,6 +14,7 @@ public final class SaboteurNode extends Node {
 
     public SaboteurNode(double x, double y, double w, double h) {
         super(x, y, w, h);
+        setNodeType(Type.SABOTEUR);
     }
 
     @Override

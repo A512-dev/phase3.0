@@ -15,7 +15,7 @@ public final class VPNNode extends Node {
     private final Set<ProtectedPacket> issued =
             Collections.newSetFromMap(new IdentityHashMap<>());
 
-    public VPNNode(double x, double y, double w, double h) { super(x, y, w, h); }
+    public VPNNode(double x, double y, double w, double h) { super(x, y, w, h);  setNodeType(Type.VPN);}
 
     @Override public void onDelivered(Packet p) {
         // already protected? just pass it through unchanged

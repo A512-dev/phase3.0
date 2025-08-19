@@ -12,6 +12,8 @@ import com.mygame.model.Port;
 import com.mygame.model.Port.*;
 import com.mygame.model.node.BasicNode;
 import com.mygame.model.node.Node;
+import com.mygame.model.node.SpyNode;
+import com.mygame.model.node.VPNNode;
 import com.mygame.model.packet.Packet;
 import com.mygame.model.packet.TrojanPacket;
 import com.mygame.model.packet.messengerPacket.types.SquarePacket;
@@ -339,7 +341,7 @@ public class World {
                     ns.height()
             );
             // if you stored flags in kind or elsewhere, restore them here:
-            if ("BasicNode".equals(ns.kind()) ) {
+            if (Node.Type.BASIC.equals(ns.type()) ) {
                 n.setBaseLeft(true);
             }
             // now re-add every port
@@ -399,7 +401,7 @@ public class World {
         baseLeft.dumpPorts();
 
         // Intermediate Node 1
-        BasicNode mid1 = new BasicNode(400, 350, cfg.nodeWidth, cfg.nodeHeight);
+        VPNNode mid1 = new VPNNode(400, 350, cfg.nodeWidth, cfg.nodeHeight);
         mid1.addInputPort(PortType.SQUARE, new Vector2D(-cfg.portSize / 2,
                 baseLeft.getHeight() / 3));
         mid1.addInputPort(PortType.TRIANGLE, new Vector2D(-cfg.portSize / 2,

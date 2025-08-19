@@ -21,6 +21,7 @@ public final class SpyNode extends Node {
     public SpyNode(double x, double y, double width, double height) {
         super(x, y, width, height);
         REGISTRY.add(this);
+        setNodeType(Type.SPY);
     }
 
     /* convenience: connected output ports on this node */

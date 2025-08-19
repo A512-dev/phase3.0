@@ -2,10 +2,6 @@ package com.mygame.model.packet.confidentialPacket.types;
 
 import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.Vector2D;
-import com.mygame.model.packet.Packet;
-import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
-
-import com.mygame.engine.physics.Vector2D;
 import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
 
 public final class ConfidentialLargePacket extends ConfidentialPacket {
@@ -18,7 +14,7 @@ public final class ConfidentialLargePacket extends ConfidentialPacket {
     public int getCoinValue() { return GameConfig.CONFIDENTIAL_LARGE_PACKET_COIN_VALUE; }
 
     @Override
-    public Shape shape() { return Shape.CONFIDENTIAL_B; }
+    public Shape shape() { return Shape.CONFIDENTIAL_L; }
 
     @Override
     public ConfidentialLargePacket copy() {

@@ -16,6 +16,7 @@ public class BasicNode extends Node {
 
     public BasicNode(double x, double y, double w, double h) {
         super(x, y, w, h);
+        setNodeType(Type.BASIC);
     }
 
     public void setBaseLeft(boolean b){ baseLeft = b; }

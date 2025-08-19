@@ -8,7 +8,7 @@ import com.mygame.model.packet.Packet;
 
 public class Port {
 
-    public enum PortType { SQUARE, TRIANGLE }
+    public enum PortType { SQUARE, TRIANGLE, INFINITY }
     public enum PortDirection { OUTPUT, INPUT }
 
     private final Vector2D position;

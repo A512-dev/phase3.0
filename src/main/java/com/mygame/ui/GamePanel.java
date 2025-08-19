@@ -508,7 +508,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.mygame.core.GameConfig;
-import com.mygame.engine.WorldController;
+import com.mygame.engine.world.WorldController;
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.model.Connection;
 import com.mygame.engine.GameLoop;

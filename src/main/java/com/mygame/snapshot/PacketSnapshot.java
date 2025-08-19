@@ -14,7 +14,10 @@ public record PacketSnapshot(
         Vector2D pathStart,
         Vector2D pathEnd,
         Port.PortType fromType,
-        Port.PortType toType
+        Port.PortType toType,
+        boolean protectedByVPN,
+        boolean trojan,
+        boolean bit
 ) {
     public static PacketSnapshot of(Packet p) {
         Vector2D pathStart = (p.getFromPort() != null) ? p.getFromPort().getCenter() : p.getPosition();
@@ -31,8 +34,12 @@ public record PacketSnapshot(
                 pathStart.copy(),
                 pathEnd.copy(),
                 fromType,
-                toType
+                toType,
+                p.isProtectedPacket(),
+                p.isTrojanPacket(),
+                p.isBitPacket()
         );
     }
+
 
 }
