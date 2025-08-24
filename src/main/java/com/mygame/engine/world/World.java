@@ -14,8 +14,14 @@ import com.mygame.model.PacketEventListener;
 import com.mygame.model.Port;
 import com.mygame.model.node.BasicNode;
 import com.mygame.model.node.Node;
+import com.mygame.model.node.SpyNode;
 import com.mygame.model.packet.Packet;
 import com.mygame.model.packet.TrojanPacket;
+import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
+import com.mygame.model.packet.confidentialPacket.types.ConfidentialLargePacket;
+import com.mygame.model.packet.confidentialPacket.types.ConfidentialSmallPacket;
+import com.mygame.model.packet.messengerPacket.types.SquarePacket;
+import com.mygame.model.packet.messengerPacket.types.TrianglePacket;
 import com.mygame.model.powerup.ActivePowerUp;
 import com.mygame.model.powerup.PowerUpType;
 import com.mygame.model.state.HUDState;
@@ -299,7 +305,7 @@ public class World {
 
     }
     /** Removes the existing wire (if any) from this port, and clears both ends. */
-    private void disconnectPort(Port port) {
+    public void disconnectPort(Port port) {
         Port connectedPort = port.getConnectedPort();
         if (connectedPort == null) return;
 
@@ -386,10 +392,20 @@ public class World {
     }
 
     public void removeConnectionBetween(Port a, Port b) {
-        connections.removeIf(conn ->
-                (conn.getFrom() == a && conn.getTo() == b) ||
-                        (conn.getFrom() == b && conn.getTo() == a)
-        );
+        // find the specific connection first (so we can refund)
+        Connection toRemove = null;
+        for (Connection c : connections) {
+            if ((c.getFrom() == a && c.getTo() == b) ||
+                    (c.getFrom() == b && c.getTo() == a)) {
+                toRemove = c;
+                break;
+            }
+        }
+        if (toRemove != null) {
+            // refund full wire length (includes bends)
+            hud.setWireLengthRemaining(hud.getWireLengthRemaining() + toRemove.getLength());
+            connections.remove(toRemove);
+        }
 
     }
     // inside com.mygame.engine.world.World
@@ -444,9 +460,14 @@ public class World {
                 System.out.println("⚠ couldn't resolve ports for connection: " + cs);
                 continue;
             }
+            // Build the wire and hook everything up
+            Connection wire = new Connection(from, to, new ArrayList<>(cs.bends()));
             from.setConnectedPort(to);
             to.setConnectedPort(from);
-            connections.add(new Connection(from, to, new ArrayList<>(cs.bends())));
+            from.setWire(wire);            // ← critical
+            to.setWire(wire);              // ← critical
+
+            connections.add(wire);
         }
 
         gameOver     = snap.isGameOver();
@@ -693,4 +714,70 @@ public class World {
 
     /* expose it if UI / other classes need direct access */
     public CoinService getCoinService() { return coinService; }
+
+    public void connectASimpleWire(Node node, int i, Node sinkOK, int j) {
+        Port portFrom = node.getOutputs().get(i);
+        Port portTo = sinkOK.getInputs().get(j);
+        addConnection(new Connection(portFrom, portTo, new ArrayList<>()));
+    }
+
+
+    // World.java (add at top-level)
+    private static final class Scheduled implements Comparable<Scheduled> {
+        final double at; final Runnable r;
+        Scheduled(double at, Runnable r){ this.at=at; this.r=r; }
+        public int compareTo(Scheduled o){ return Double.compare(this.at, o.at); }
+    }
+    private final java.util.PriorityQueue<Scheduled> q = new java.util.PriorityQueue<>();
+    private double time = 0.0;
+
+    public double getTime(){ return time; }
+
+    // call this **every frame** from WorldController.tick(dt)
+    public void advanceTime(double dt){
+        time += dt;
+        while(!q.isEmpty() && q.peek().at <= time){
+            q.poll().r.run();
+        }
+    }
+
+    // schedule
+    public void postAt(double atSecondsFromStart, Runnable r){
+        q.add(new Scheduled(atSecondsFromStart, r));
+    }
+
+    // World.java
+    private final PacketFactory packetFactory = new PacketFactory();
+
+    public PacketFactory getPacketFactory(){ return packetFactory; }
+
+
+
+// import your confidential types when you have them
+
+    public class PacketFactory {
+        public ConfidentialPacket confidentialSmall(Vector2D pos){
+            // TODO replace with your real ConfidentialPacketA
+            ConfidentialPacket p = new ConfidentialSmallPacket(pos);
+            return p;
+        }
+        public ConfidentialPacket confidentialLarge(Vector2D pos){
+            // TODO real ConfidentialPacketB
+            ConfidentialPacket p = new ConfidentialLargePacket(pos);
+            p.addTag("CONF_B");
+            return p;
+        }
+        public Packet messengerSmall(Vector2D pos){
+            return new SquarePacket(pos, 20, 8);
+        }
+        // add trojan(), bulkA(), etc. as you implement them
+    }
+    // World.java
+    public void flashBanner(String msg){
+        hud.flashBanner(msg);
+    }
+
+
+
+
 }

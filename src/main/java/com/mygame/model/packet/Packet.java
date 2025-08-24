@@ -225,4 +225,16 @@ public abstract class Packet implements PhysicsBody {
     public abstract Packet copy();
 
 
+    // Packet.java
+    private static int NEXT_ID = 1;
+    private final int id = NEXT_ID++;
+    private final java.util.Set<String> tags = new java.util.HashSet<>();
+
+    public int getId(){ return id; }
+
+    public boolean hasTag(String t){ return tags.contains(t); }
+    public void addTag(String t){ tags.add(t); }
+    public void removeTag(String t){ tags.remove(t); }
+
+
 }

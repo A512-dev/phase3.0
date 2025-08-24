@@ -75,6 +75,7 @@ public final class GameConfig {
     public static double timeCooldownPort = 1;
 
 
+
     /* --- node geometry --- */
     public final int nodeWidth           = 90;
     public final int nodeHeight          = 150;
@@ -108,8 +109,9 @@ public final class GameConfig {
     public final int    maxQueueSize         = 5;
 
     /* --- life / health --- */
-    public static final int squareLife   = 10;
+    public static final int squareLife   = 2;
     public static final int triangleLife = 3;
+    public static double infinityLife = 1;
 
     /* --- packet counts & runs --- */
     public final int    numberOfRuns           = 1;

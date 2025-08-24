@@ -2,6 +2,7 @@
 package com.mygame.model.node;
 
 import com.mygame.engine.physics.Vector2D;
+import com.mygame.model.PacketEventListener;
 import com.mygame.model.Port;
 import com.mygame.model.packet.Packet;
 import com.mygame.model.packet.ProtectedPacket;
@@ -10,6 +11,31 @@ import com.mygame.model.packet.messengerPacket.MessengerPacket;
 import java.util.*;
 
 public final class VPNNode extends Node {
+    // track packets this VPN converted (so we can revert them on failure)
+    private final List<Packet> converted = new ArrayList<>();
+    private boolean online = true;
+    /** Call this to revert all packets that THIS VPN converted earlier. */
+    public void revertPreviouslyProtected() {
+        PacketEventListener lis = packetEventListener;
+        for (Packet p : converted) {
+            if (p == null) continue;
+            // revert flags/tags only; type stays same in your current model
+            p.setProtectedPacket(false);
+            p.removeTag("PROTECTED");
+            if (lis != null) lis.onMutation(p, p, "VPN_A_OFFLINE_REVERT");
+        }
+        converted.clear();
+    }
+
+    /* ── example hook you can call from your processing code ── */
+    protected void convertToProtected(Packet p) {
+        if (!online || p == null) return;
+        p.setProtectedPacket(true);
+        p.addTag("PROTECTED");
+        converted.add(p);
+        PacketEventListener lis = packetEventListener;
+        if (lis != null) lis.onMutation(p, p, "VPN_PROTECT_A");
+    }
 
     /** track only the protected packets this VPN created (for revert-on-fail) */
     private final Set<ProtectedPacket> issued =

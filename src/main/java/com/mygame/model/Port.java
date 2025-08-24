@@ -34,7 +34,7 @@ public class Port {
         this.position = position;
     }
     /** Wire‐back‐pointer: which Connection this port is on */
-    public Connection getWire()      { return wire; }
+    public Connection getWire() { return wire; }
     public void setWire(Connection wire) {
         if (wire==null) {
             this.wire = null; return;

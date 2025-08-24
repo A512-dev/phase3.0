@@ -717,6 +717,12 @@ public final class GamePanel extends JPanel
                     if (selectedPort == null)
                         return;
                     draftConnection = new DraftConnection(selectedPort);
+                    if (draftConnection.getFrom().getConnectedPort()!=null) {
+                        System.out.println("LLLLLLMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
+                        world.disconnectPort(draftConnection.getFrom());
+                        draftConnection.getFrom().getConnectedPort().setConnectedPort(null);
+                        draftConnection.getFrom().setConnectedPort(null);
+                    }
                     draftConnection.setMouse(new Vector2D(e.getX(), e.getY()));
                 } else if (SwingUtilities.isRightMouseButton(e)) {
                     mousePos = new Vector2D(e.getX(), e.getY());
@@ -777,12 +783,13 @@ public final class GamePanel extends JPanel
                 Port destination = world.findPortAtPosition(new Vector2D(e.getX(), e.getY()));
                 if (draftConnection != null && destination!=null) {
                     draftConnection.setToCandidate(destination);
+
+
 //                    /* break old links cleanly */
 //                    world.removeConnectionBetween(draftConnection.getFrom(), draftConnection.getFrom().getConnectedPort());
 //                    world.removeConnectionBetween(destination,        destination.getConnectedPort());
 
-                    draftConnection.getFrom().setConnectedPort(destination);
-                    destination.setConnectedPort(draftConnection.getFrom());
+
 
                     // مسیر را تبدیل به Connection واقعی بکنیم
                     Connection newConn = new Connection(draftConnection.getFrom(), destination, draftConnection.getBends());

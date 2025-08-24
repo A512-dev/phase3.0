@@ -19,6 +19,14 @@ import java.util.stream.Collectors;
 
 /** Core data + API every network node shares. */
 public abstract class Node implements PacketEventListener {
+    public boolean isOnline() {
+        return online;
+    }
+
+    private boolean online = true;
+    /** Toggle this Node on/off (when off, it won't do new packets). */
+    public void setOnline(boolean v) { this.online = v; }
+
     public Type getNodeType() {
         return nodeType;
     }
@@ -95,6 +103,21 @@ public abstract class Node implements PacketEventListener {
         else
             queue.addLast(p);
     }
+    // Node.java (base class)
+    public void emitFrom(int outPortIndex) {
+        if (queue.isEmpty()) return;
+        Packet pkt = queue.removeFirst(); // or remove(0)
+        Port out = getOutputs().get(outPortIndex);
+        var wire = out.getWire();
+        if (wire == null) {
+            // safe guard to avoid NPE; requeue and bail
+            queue.addFirst(pkt);
+            System.err.println("emitFrom: no wire on port " + outPortIndex + " of " + this);
+            return;
+        }
+        wire.transmit(pkt); // or transmit(pkt) depending on your API
+    }
+
     protected void emitQueued(List<Packet> worldPackets){
         if(!queue.isEmpty()){
             Packet p = queue.peekFirst();
@@ -296,4 +319,6 @@ public abstract class Node implements PacketEventListener {
     public enum Type {
         BASIC, SPY, VPN, SABOTEUR, MERGER, DISTRIBUTOR, ANTITROJAN
     }
+
+    protected PacketEventListener getPacketEventListener() { return this.packetEventListener; }
 }

@@ -52,6 +52,7 @@
             this.from = from;
             this.to   = to;
 
+
             for (Vector2D bend: bendsD)
                 addBend(bend);
 

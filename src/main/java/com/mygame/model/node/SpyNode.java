@@ -1,6 +1,7 @@
 // com/mygame/model/node/SpyNode.java
 package com.mygame.model.node;
 
+import com.mygame.model.PacketEventListener;
 import com.mygame.model.Port;
 import com.mygame.model.packet.Packet;
 
@@ -18,10 +19,26 @@ public final class SpyNode extends Node {
     private static final List<SpyNode> REGISTRY = new ArrayList<>();
     private static final Random RNG = new Random();
 
+    /* optional clustering support: linkSpies(a,b,...) assigns a shared groupId */
+    private static int NEXT_GROUP = 1;
+    private static final Map<Integer, Set<SpyNode>> GROUPS = new HashMap<>();
+
+    private int groupId = 0; // 0 = ungrouped → use REGISTRY
+
+
     public SpyNode(double x, double y, double width, double height) {
         super(x, y, width, height);
         REGISTRY.add(this);
         setNodeType(Type.SPY);
+    }
+
+    /** Link a set of spies into one teleportation cluster. */
+    public static void linkSpies(SpyNode... spies) {
+        if (spies == null || spies.length == 0) return;
+        int gid = NEXT_GROUP++;
+        Set<SpyNode> set = new HashSet<>(Arrays.asList(spies));
+        GROUPS.put(gid, set);
+        for (SpyNode s : spies) s.groupId = gid;
     }
 
     /* convenience: connected output ports on this node */
@@ -46,6 +63,24 @@ public final class SpyNode extends Node {
         }
         return null;
     }
+
+    /* candidates inside my group (if any), otherwise all spies */
+    private List<SpyNode> candidateExits() {
+        if (groupId != 0) {
+            Set<SpyNode> set = GROUPS.get(groupId);
+            if (set != null) {
+                return set.stream()
+                        .filter(s -> s != this && !s.connectedOutputs().isEmpty())
+                        .collect(Collectors.toList());
+            }
+        }
+        // fallback: any other spy with at least one connected output
+        return REGISTRY.stream()
+                .filter(s -> s != this && !s.connectedOutputs().isEmpty())
+                .collect(Collectors.toList());
+    }
+
+
 
     /* ---------- Node hooks ---------- */
 
@@ -81,25 +116,45 @@ public final class SpyNode extends Node {
 
     /** forward from THIS spy through one of its connected outputs */
     private void forwardLocally(Packet p) {
-        forwardFromNode(this, p);
+        forwardFromNode(this, p, null);
     }
 
     /** forward from an arbitrary spy node (used by teleport exit) */
     private void forwardFromHere(Packet p) {
-        forwardFromNode(this, p);
+        forwardFromNode(this, p, null);
     }
 
-    private static void forwardFromNode(SpyNode node, Packet p) {
+    /** forward from a specific spy node through one of its connected outputs */
+    private static void forwardFromNode(SpyNode node, Packet p, String mutationReason) {
         List<Port> outs = node.connectedOutputs();
         if (outs.isEmpty()) {
-            // nothing to do: queue it so it doesn't disappear silently
+            // nowhere to go → queue so it doesn't disappear
             node.enqueuePacket(p);
             return;
         }
-        Port out = outs.get(RNG.nextInt(outs.size()));
-        // use the wire already connected to this output to transmit
-        out.getWire().transmit(p);
+        // prefer an output whose wire isn't currently emitting if you track that
+        Port out = pickBestOut(outs);
+        // notify mutation if this was a teleport
+        if (mutationReason != null) {
+            PacketEventListener lis = node.packetEventListener;
+            if (lis != null) lis.onMutation(p, p, mutationReason);
+        }
+        // safe-guard wire use
+        var wire = out.getWire();
+        if (wire == null) {
+            node.enqueuePacket(p);
+            return;
+        }
+        wire.transmit(p);
     }
+
+    private static Port pickBestOut(List<Port> outs) {
+        // prefer a non-busy port if your Port has such a signal; otherwise pick random
+        List<Port> idle = outs.stream().filter(o -> !o.isEmitting()).collect(Collectors.toList());
+        if (!idle.isEmpty()) return idle.get(RNG.nextInt(idle.size()));
+        return outs.get(RNG.nextInt(outs.size()));
+    }
+
 
     /* spies don’t emit on their own each tick */
     @Override public void update(double dt, List<Packet> worldPackets) { /* no-op */ }

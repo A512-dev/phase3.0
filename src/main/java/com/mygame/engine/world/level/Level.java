@@ -8,6 +8,7 @@ import com.mygame.model.Port;
 import com.mygame.model.Port.PortType;
 import com.mygame.model.node.*;
 import com.mygame.model.packet.Packet;
+import com.mygame.model.packet.messengerPacket.types.InfinityPacket;
 import com.mygame.model.packet.messengerPacket.types.SquarePacket;
 import com.mygame.model.packet.messengerPacket.types.TrianglePacket;
 
@@ -35,6 +36,8 @@ public final class Level{
             this.levelID = "sandboxTrojan";
         else if (level==94)
             this.levelID = "sandboxVPN";
+        else if (level==95)
+            this.levelID = "sandboxTest1";
         else throw new IllegalArgumentException("Unknown level num: " + level);
     }
     public String id()    { return levelID; }
@@ -61,7 +64,12 @@ public final class Level{
             case "sandboxBulk" -> sandboxBulk(world, cfg);        /* Distribute & Merge pathing*/
             case "sandboxProtected" -> sandboxProtected(world, cfg);   /* Spy blocks unless protected*/
             case "sandboxTrojan" -> sandboxTrojan(world, cfg);      /* Trojan + AntiTrojan cleanup loop*/
-            case "sandboxVPN" -> sandboxVPN(world, cfg);         /* Protected routing / VPN pass-through*/
+            case "sandboxVPN" -> sandboxTest1(world, cfg);         /* Protected routing / VPN pass-through*/
+            case "sandboxTest1" -> {
+                System.out.println("LLLLLLLLLLSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS");
+                sandboxTest1(world, cfg);
+
+            }
 
             default -> throw new IllegalArgumentException("Unknown level: " + levelID);
         }
@@ -376,4 +384,207 @@ public final class Level{
     private void finalizeWorld(World w) {
         w.captureInitialSnapshot(); // we'll add this method in World (see §3)
     }
+
+
+    private void sandboxTest1(World world, GameConfig cfg) {
+        // --- Nodes
+        BasicNode emitter   = addBasicNode(world,  80, 220, cfg);
+        emitter.addOutputPort(PortType.SQUARE,   pointMaker(emitter.getWidth() - cfg.portSize/2, emitter.getHeight()/3));
+        emitter.addOutputPort(PortType.TRIANGLE, pointMaker(emitter.getWidth() - cfg.portSize/2, 2*emitter.getHeight()/3));
+        emitter.setBaseLeft(true);
+
+        VPNNode        vpnA = new VPNNode(240, 220, cfg.nodeWidth, cfg.nodeHeight);
+        vpnA.addInputPort(PortType.SQUARE,   pointMaker(- cfg.portSize/2, vpnA.getHeight()/3));
+        vpnA.addOutputPort(PortType.TRIANGLE, pointMaker(vpnA.getWidth() - cfg.portSize/2, 2*vpnA.getHeight()/3));
+
+        System.out.println("JJJJJJJJJJJJJJJJJSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS========"+vpnA.getInputs());
+
+        SaboteurNode dist= new SaboteurNode(390, 220, cfg.nodeWidth, cfg.nodeHeight);
+        dist.addInputPort(PortType.SQUARE,   pointMaker(- cfg.portSize/2, dist.getHeight()/3));
+        dist.addOutputPort(PortType.TRIANGLE, pointMaker(dist.getWidth() - cfg.portSize/2, 2*dist.getHeight()/3));
+
+
+
+        SpyNode         spyB= new SpyNode(560, 220, cfg.nodeWidth, cfg.nodeHeight);
+        spyB.addInputPort(PortType.SQUARE,   pointMaker(- cfg.portSize/2, dist.getHeight()/3));
+        spyB.addOutputPort(PortType.TRIANGLE, pointMaker(dist.getWidth() - cfg.portSize/2, 2*dist.getHeight()/3));
+
+        BasicNode    sinkOK = addBasicNode(world, 740, 220, cfg);
+
+        sinkOK.addOutputPort(PortType.TRIANGLE, pointMaker(dist.getWidth() - cfg.portSize/2, 2*dist.getHeight()/3));
+        sinkOK.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, sinkOK.getHeight()/2));
+
+        SpyNode         spyA= new SpyNode(240, 110, cfg.nodeWidth, cfg.nodeHeight);
+        spyA.addInputPort(PortType.SQUARE,   pointMaker(- cfg.portSize/2, dist.getHeight()/3));
+        spyA.addOutputPort(PortType.TRIANGLE, pointMaker(dist.getWidth() - cfg.portSize/2, 2*dist.getHeight()/3));
+
+        BasicNode  sinkSpyEx= addBasicNode(world, 740, 110, cfg);
+        sinkSpyEx.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, sinkSpyEx.getHeight()/2));
+        sinkSpyEx.addOutputPort(PortType.TRIANGLE, pointMaker(dist.getWidth() - cfg.portSize/2, 2*dist.getHeight()/3));
+
+        // Confidential lane
+        BasicNode  confSrcA = addBasicNode(world,  80, 360, cfg);  // emits Confidential A
+        confSrcA.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, sinkSpyEx.getHeight()/2));
+        confSrcA.addOutputPort(PortType.SQUARE, pointMaker(confSrcA.getWidth() - cfg.portSize/2, confSrcA.getHeight()/2));
+        BasicNode       sysQ= addBasicNode(world, 240, 360, cfg);  // holds one packet in queue to force slow-down
+        sysQ.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, sinkSpyEx.getHeight()/2));
+        sysQ.addOutputPort(PortType.SQUARE, pointMaker(confSrcA.getWidth() - cfg.portSize/2, confSrcA.getHeight()/2));
+
+        VPNNode         vpnB= new VPNNode(420, 360, cfg.nodeWidth, cfg.nodeHeight);
+        vpnB.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, sinkSpyEx.getHeight()/2));
+        vpnB.addOutputPort(PortType.TRIANGLE, pointMaker(dist.getWidth() - cfg.portSize/2, 2*dist.getHeight()/3));
+
+        BasicNode  sinkConf = addBasicNode(world, 660, 360, cfg);
+        sinkConf.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, sinkConf.getHeight()/2));
+
+        SpyNode         spyC= new SpyNode(420, 430, cfg.nodeWidth, cfg.nodeHeight); // kills Confidential A
+        spyC.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, sinkSpyEx.getHeight()/2));
+        spyC.addOutputPort(PortType.TRIANGLE, pointMaker(dist.getWidth() - cfg.portSize/2, 2*dist.getHeight()/3));
+
+        world.getNodes().addAll(java.util.List.of(vpnA, dist, spyB, sinkOK, spyA, sinkSpyEx, vpnB, sinkConf, spyC));
+
+        // --- Wiring (your engine likely builds wires elsewhere; this names intent)
+        // Top branch through VPN -> Distributor -> SpyB -> sinkOK
+        // Parallel top branch direct to SpyA -> sinkSpyEx
+        // Bottom Confidential lane: confSrcA -> sysQ -> vpnB -> sinkConf
+        // Bottom kill lane: confSrcA -> spyC (to verify deletion)
+
+        // (Pseudo; replace with your actual connectASimpleWire() API)
+        System.out.println("emmiter="+emitter.getOutputs());
+        world.connectASimpleWire(emitter, 0, vpnA, 0);            // messenger -> VPN  (protected out)
+        world.connectASimpleWire(vpnA,    0, dist, 0);            // protected -> Distributor (no effect expected)
+        world.connectASimpleWire(dist,    0, spyB, 0);            // then SpyB (should keep protected unchanged)
+        world.connectASimpleWire(spyB,    0, sinkOK, 0);
+
+        world.connectASimpleWire(emitter, 1, spyA, 0);            // messenger -> SpyA (should exit from SpyB path)
+        world.connectASimpleWire(spyA,    0, sinkSpyEx, 0);
+
+        world.connectASimpleWire(confSrcA,0, sysQ, 0);            // Conf A -> system with queued packet (forces slow-down)
+        world.connectASimpleWire(sysQ,    0, vpnB, 0);            // Conf A -> VPN_B => becomes Conf B
+        world.connectASimpleWire(vpnB,    0, sinkConf, 0);
+
+        world.connectASimpleWire(confSrcA,0, spyC, 0);            // Conf A -> SpyC => should be deleted
+
+        // --- Spawns
+        // 1) Top path: cycle through three messenger flavors; half go through VPN (protected), half go to SpyA (unprotected)
+        enqueueMessengerTriplet(emitter, 6, world); // emits SQUARE, TRIANGLE, (THIRD), repeating; queued/motion control stays with nodes
+
+        // Route control: if you choose outputs by player wiring, keep both wires as above. If emitter chooses port by packet type,
+        // ensure both outputs are used (e.g., SQUARE -> port0 (VPN path), TRIANGLE/THIRD -> port1 (SpyA path)).
+
+        // 2) Confidential lane: emit two Conf A; one goes through sysQ then VPN_B => becomes Conf B, one directly into SpyC (lost)
+        enqueueConfidentialA(confSrcA, /*count*/2, world);
+
+        // 3) Make sysQ hold a packet briefly so Conf A slows down approaching it:
+        holdAPacket(sysQ, world, cfg);
+
+        // 4) Configure Distributor: incompatible routing + noise + trojan chance
+        dist.setIncompatibleRoutingEnabled(true);
+        dist.setInjectUnitNoiseIfNone(true);
+        dist.setTrojanConversionProbability(0.4); // example; tune to taste
+
+        // 5) Make Spy network aware (so entry at SpyA can exit at SpyB)
+        SpyNode.linkSpies(spyA, spyB); // or register in a shared registry; depends on your implementation
+
+        // 6) Attach listeners for assertions (probe + HUD)
+        world.getNodes().forEach(n -> n.setPacketEventListener(world.getHudState()));
+        installProbe(world);
+
+        // 7) Optional: simulate a VPN failure mid-run to assert reversion of protected packets
+        world.postAt(6.0, () -> {
+            vpnA.setOnline(false);            // goes offline
+            vpnA.revertPreviouslyProtected(); // your VPN should track IDs it converted; revert them now
+        });
+
+        world.getCoinService().addCoins(10);
+    }
+
+    /** Cycles Square, Triangle, and a third messenger type if you have it (fallback to Triangle). */
+    private void enqueueMessengerTriplet(Node emitter, int count, World world) {
+        for (int i = 0; i < count; i++) {
+            Packet p;
+            int mod = i % 3;
+            if (mod == 0) {
+                p = new SquarePacket(centerOf(emitter), GameConfig.squareLife, GameConfig.squareSize);
+            } else if (mod == 1) {
+                p = new TrianglePacket(centerOf(emitter), GameConfig.triangleLife, GameConfig.triangleSize);
+            } else {
+                // TODO: replace with your third messenger type (e.g., CirclePacket or InfinityPacket)
+                p = new InfinityPacket(centerOf(emitter), GameConfig.infinityLife, GameConfig.infinitySize);
+            }
+            p.setMobile(false);
+            emitter.enqueuePacket(p);
+            world.getHudState().incrementTotalPackets();
+        }
+    }
+
+    /** Emit two Confidential A packets. Replace class names with your own types if different. */
+    private void enqueueConfidentialA(Node emitter, int count, World world) {
+        for (int i = 0; i < count; i++) {
+            Packet p = world.getPacketFactory().confidentialSmall(centerOf(emitter)); // or new ConfidentialPacketA(...)
+            p.setMobile(false);
+            emitter.enqueuePacket(p);
+            world.getHudState().incrementTotalPackets();
+        }
+    }
+
+    /** Keep one packet queued in sysQ briefly so approaching Confidential A slows down. */
+    private void holdAPacket(BasicNode sysQ, World world, GameConfig cfg) {
+        Packet blocker = new SquarePacket(centerOf(sysQ), GameConfig.squareLife, GameConfig.squareSize);
+        blocker.setMobile(false);
+        sysQ.enqueuePacket(blocker);
+        // Release it later so traffic resumes (ensures Conf A slows only while it’s present)
+        world.postAt(4.0, () -> {
+            sysQ.emitFrom(0); // or however your node flushes its queue
+        });
+    }
+
+    /** Records events so we can assert all feats at runtime. */
+    private void installProbe(World w) {
+        class Probe implements com.mygame.model.PacketEventListener {
+            int delivered=0, lost=0, trojanized=0, spyTeleports=0, protectedPass=0, confBSpacingOK=0, confAKilled=0, protectedReverted=0;
+            java.util.Set<Integer> protectedByVpnA = new java.util.HashSet<>();
+
+            @Override public void onDelivered(Packet p) {
+                delivered++;
+                if (p.isProtectedPacket()) protectedPass++;
+                if (p.hasTag("SPACING_OK")) confBSpacingOK++;
+            }
+
+            @Override
+            public void onCollision(Packet a, Packet b) {
+
+            }
+
+            @Override public void onLost(Packet p) {
+                lost++;
+                if (p.isConfidentialPacket() && !p.isProtectedPacket()) confAKilled++;
+            }
+            @Override public void onMutation(Packet before, Packet after, String reason) {
+                if ("SPY_EXIT".equals(reason)) spyTeleports++;
+                if ("DISTRIBUTOR_TROJAN".equals(reason)) trojanized++;
+                if ("VPN_PROTECT_A".equals(reason)) { protectedByVpnA.add(after.getId()); }
+                if ("VPN_A_OFFLINE_REVERT".equals(reason) && protectedByVpnA.contains(before.getId())) protectedReverted++;
+            }
+        }
+        Probe probe = new Probe();
+        w.setPacketEventListener(probe);
+
+        // End-of-level assertions (pop a banner or log)
+        w.postAt(10.0, () -> {
+            assertTrue("Spy should teleport some packets", probe.spyTeleports >= 1);
+            assertTrue("Protected should pass spies", probe.protectedPass >= 1);
+            assertTrue("Conf A should be killed by spy", probe.confAKilled >= 1);
+            assertTrue("Distributor should trojanize some unprotected", probe.trojanized >= 1);
+            assertTrue("Conf B should report spacing OK", probe.confBSpacingOK >= 1);
+            assertTrue("VPN offline should revert at least one", probe.protectedReverted >= 1);
+            w.getHudState().flashBanner("Protector Lab OK");
+        });
+    }
+
+    private void assertTrue(String msg, boolean cond) {
+        if (!cond) throw new AssertionError(msg);
+    }
+
+
 }

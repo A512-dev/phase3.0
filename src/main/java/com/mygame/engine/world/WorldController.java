@@ -32,6 +32,7 @@ public final class WorldController {
         mover.update(scaledDt, world.getConnections());
         // *for now* just call the old logic
         world.update(scaledDt);
+        world.advanceTime(scaledDt);
     }
 
     /** immutable DTO for rendering */

@@ -10,12 +10,26 @@ import java.util.List;
 
 public final class SaboteurNode extends Node {
 
+    private boolean incompatibleRoutingEnabled = true;
+    private boolean injectUnitNoiseIfNone = true;
+
+
+
     private static final double INFECT_CHANCE = 0.3;   // 30%
+    private double trojanConversionProbability = INFECT_CHANCE;
 
     public SaboteurNode(double x, double y, double w, double h) {
         super(x, y, w, h);
         setNodeType(Type.SABOTEUR);
     }
+
+    public void setIncompatibleRoutingEnabled(boolean v) { this.incompatibleRoutingEnabled = v; }
+    public void setInjectUnitNoiseIfNone(boolean v)      { this.injectUnitNoiseIfNone = v; }
+    public void setTrojanConversionProbability(double p) {
+        if (Double.isNaN(p)) p = 0.0;
+        this.trojanConversionProbability = Math.max(0, Math.min(1, p));
+    }
+
 
     @Override
     public void onDelivered(Packet p) {

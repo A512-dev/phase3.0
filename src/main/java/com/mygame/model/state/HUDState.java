@@ -44,6 +44,21 @@ public class HUDState implements PacketEventListener {
         this.wireLengthRemaining = wireLengthRemaining;
     }
 
+    // HUDState.java (add fields + method)
+    private String bannerText = null;
+    private double bannerUntil = 0.0;
+
+    public void flashBanner(String msg) {
+        this.bannerText = msg;
+        this.bannerUntil = System.currentTimeMillis() / 1000.0 + 2.0; // show for 2s
+    }
+
+    // (optional) expose for rendering
+    public String getBannerText() {
+        if ((System.currentTimeMillis()/1000.0) > bannerUntil) return null;
+        return bannerText;
+    }
+
     public int getNumOfGoToTarget() {
         return numOfGoToTarget;
     }
