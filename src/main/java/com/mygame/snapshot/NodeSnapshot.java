@@ -3,6 +3,10 @@ package com.mygame.snapshot;
 
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.model.node.Node;
+import com.mygame.model.packet.Packet;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 
 /** Immutable, render-only picture of a single node (and all its ports). */
@@ -12,7 +16,9 @@ public record NodeSnapshot(
         int                      height,
         List<PortSnapshot>       ports,
         Node.Type type,     // “BasicNode”, “SpyNode”, …
-        boolean isAllConnected
+        boolean isAllConnected,
+        List<Packet> queue
+
 ) {
 
     /** Factory – called by the World when it builds the frame snapshot */
@@ -23,7 +29,8 @@ public record NodeSnapshot(
                 (int) n.getHeight(),
                 n.getPorts().stream().map(PortSnapshot::of).toList(),
                 n.getNodeType(),
-                n.isAllConnected()
+                n.isAllConnected(),
+                n.getQueuedPackets().stream().toList()
         );
     }
 }

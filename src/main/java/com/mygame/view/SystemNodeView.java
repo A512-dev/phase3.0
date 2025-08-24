@@ -49,7 +49,7 @@ public class SystemNodeView implements View<NodeSnapshot> {
 
         Image img = nodeImg.get(node.type()); // requires NodeSnapshot.type()
         if (img != null) {
-            System.out.println(node.type());;
+            //System.out.println(node.type());;
             // center the sprite within node bounds (assuming art roughly matches box)
             Draw.imageCentered(g, img, x + w / 2.0, y + h / 2.0, w, h, 1f, 0);
         } else {

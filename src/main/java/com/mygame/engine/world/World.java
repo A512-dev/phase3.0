@@ -4,24 +4,21 @@ import com.mygame.audio.AudioManager;
 import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.CollisionSystem;
 import com.mygame.engine.physics.ImpactWaveSystem;
+import com.mygame.engine.world.level.Level;
+
+
 import com.mygame.model.Connection;
 import com.mygame.engine.loop.TimeController;
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.model.PacketEventListener;
 import com.mygame.model.Port;
-import com.mygame.model.Port.*;
 import com.mygame.model.node.BasicNode;
 import com.mygame.model.node.Node;
-import com.mygame.model.node.SpyNode;
-import com.mygame.model.node.VPNNode;
 import com.mygame.model.packet.Packet;
 import com.mygame.model.packet.TrojanPacket;
-import com.mygame.model.packet.messengerPacket.types.SquarePacket;
-import com.mygame.model.packet.messengerPacket.types.TrianglePacket;
 import com.mygame.model.powerup.ActivePowerUp;
 import com.mygame.model.powerup.PowerUpType;
 import com.mygame.model.state.HUDState;
-import com.mygame.core.GameState;
 import com.mygame.service.CoinService;
 import com.mygame.snapshot.*;
 
@@ -64,7 +61,7 @@ public class World {
             waveSystem.emit(mid, /*radius*/GameConfig.RADIUS_OF_WAVE, /*strength*/GameConfig.STRENGTH_OF_WAVE));
 
 
-    private final TimeController timeController    = new TimeController();
+    private final TimeController timeController = new TimeController();
     private WorldSnapshot initialState;
 
     /* ---------------- power-up support ---------------- */
@@ -80,14 +77,35 @@ public class World {
 
     public WorldSnapshot getInitialState() {
         return initialState;
-    }
 
-    public World() {
-        if (GameState.currentLevel == 1) {
-            createTestLevel1();
-        } else if (GameState.currentLevel == 2) {
-            createTestLevel2();
+    }
+    /** Called by levels after building to lock in the baseline snapshot.
+     * @return*/
+    public WorldSnapshot captureInitialSnapshot() {
+        this.initialState = snapshot();
+        return initialState;
+    }
+    /** Utility used by levels before build. */
+    public void clearAll() {
+        packets.clear();
+        nodes.clear();
+        connections.clear();
+        hud.reset();
+        setGameOver(false);
+        viewOnlyMode = false;
+        simTimeAccumulator = 0;
+    }
+    public World(Level level) {
+        try {
+            level.build(this);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to build level: " + level.id(), e);
         }
+//        if (GameState.currentLevel == 1) {
+//            createTestLevel1();
+//        } else if (GameState.currentLevel == 2) {
+//            createTestLevel2();
+//        }
         this.initialState = snapshot();
     }
 
@@ -133,6 +151,19 @@ public class World {
 
         if (simTimeAccumulator==0)
             System.out.println("Timer Started");
+        // NEW — clamp dt when jumping to avoid overshoot
+        if (timeController.getTargetTime() >= 0) {
+            double left = timeController.getTargetTime() - hud.getGameTime();
+            if (left <= 0) {
+                hud.setGameTime(timeController.getTargetTime());
+                timeController.stopJump();
+                timeController.setTimeMultiplier(1.0);
+                if (!timeController.isFrozen()) timeController.toggleFrozen(); // hard freeze
+                timeController.waitToStart();                                   // gate future ticks
+                return;
+            }
+            dt = Math.min(dt, left);
+        }
         simTimeAccumulator += dt;
 
         //System.out.println("WorldPackets="+ packets.size());
@@ -141,6 +172,7 @@ public class World {
 //            System.out.println(1);
 //            p.update(dt);
 //        }
+
 
         // 2) physics resolution
         collisionSystem.step(packets, dt);
@@ -197,10 +229,10 @@ public class World {
         packets.clear();
         packets.addAll(stillAlive);
 
-//        if (hud.getPacketLossRatio() > 0.5 && !viewOnlyMode) {
-//            setGameOver(true);
-//            AudioManager.get().playFx("losegamemusic");
-//        }
+        if (hud.getPacketLossRatio() > 0.5 && !viewOnlyMode) {
+            setGameOver(true);
+            AudioManager.get().playFx("losegamemusic");
+        }
 
         System.out.println("nodes update");
         for (Node node : nodes) {
@@ -213,7 +245,7 @@ public class World {
         boolean allSettled = packets.isEmpty()
                 && nodes.stream().allMatch(n -> n.getQueuedPackets().isEmpty());
 
-        if (allSettled && !gameOver) {
+        if (allSettled && !gameOver && !viewOnlyMode) {
             double successRatio = (double) hud.getSuccessful() / hud.getTotalPackets();
             if (successRatio >= 0.5) {
                 AudioManager.get().playFx("happy_ending");
@@ -229,15 +261,9 @@ public class World {
             timeController.stopJump();
             timeController.setTimeMultiplier(1.0);
             timeController.waitToStart();
+            if (!timeController.isFrozen()) timeController.toggleFrozen();
 
             lossPacketRepeat.add(hud.getLostPackets());
-            if (hud.getNumOfGoToTarget() < cfg.numberOfRuns
-                    && onReachedTargetCallback != null) {
-                onReachedTargetCallback.run();
-            }
-            if (lossPacketRepeat.size() == cfg.numberOfRuns + 1) {
-                lossPacketRepeat = new ArrayList<>();
-            }
         } else {
             hud.setGameTime(simTimeAccumulator);
         }
@@ -251,9 +277,57 @@ public class World {
     public HUDState getHudState()               { return hud; }
 
     public void addPacket(Packet p)             { packets.add(p); }
-    public void addNode(BasicNode n)           { nodes.add(n); }
+    public void addNode(Node n)           { nodes.add(n); }
     public void addConnection(Connection c)      {
-        connections.add(c);
+        // Enforce exclusivity on both ends
+        disconnectPort(c.getFrom());
+        disconnectPort(c.getTo());
+
+        // Link ports
+        c.getFrom().setConnectedPort(c.getTo());
+        c.getTo().setConnectedPort(c.getFrom());
+
+        //set their wire
+        c.getTo().setWire(c);
+        c.getFrom().setWire(c);
+
+
+        if (hud.getWireLengthRemaining()>= c.getLength()) {
+            connections.add(c);
+            hud.setWireLengthRemaining(hud.getWireLengthRemaining() - c.getLength());
+        }
+
+    }
+    /** Removes the existing wire (if any) from this port, and clears both ends. */
+    private void disconnectPort(Port port) {
+        Port connectedPort = port.getConnectedPort();
+        if (connectedPort == null) return;
+
+        // find the specific connection first (so we can refund)
+        Connection toRemove = null;
+        for (Connection c : connections) {
+            if ((c.getFrom() == port && c.getTo() == connectedPort) ||
+                    (c.getFrom() == connectedPort && c.getTo() == port)) {
+                toRemove = c;
+                break;
+            }
+        }
+        if (toRemove != null) {
+            // refund full wire length (includes bends)
+            hud.setWireLengthRemaining(hud.getWireLengthRemaining() + toRemove.getLength());
+            connections.remove(toRemove);
+        }
+
+        // Clear back-references
+        port.setConnectedPort(null);
+        connectedPort.setConnectedPort(null);
+
+        // If you keep a Wire object on Port, also clear it:
+        if (port.getWire() != null) port.setWire(null);
+        if (connectedPort.getWire() != null &&
+                (connectedPort.getWire().getFrom().equals(port) || connectedPort.getWire().getTo().equals(port)))
+            connectedPort.setWire(null);
+
     }
     public boolean isGameOver()                 { return gameOver; }
     public void setViewOnlyMode(boolean mode) {
@@ -269,10 +343,7 @@ public class World {
             for (Port port : node.getPorts()) {
                 double PORT_CLICK_RADIUS = cfg.portClickRadius;
                 if (port.getCenter().distanceTo(pos) <= PORT_CLICK_RADIUS) {
-                    if (port.getConnectedPort() != null) {
-                        port.getConnectedPort().setConnectedPort(null);
-                        port.setConnectedPort(null);
-                    }
+
                     return port;
                 }
             }
@@ -319,6 +390,7 @@ public class World {
                 (conn.getFrom() == a && conn.getTo() == b) ||
                         (conn.getFrom() == b && conn.getTo() == a)
         );
+
     }
     // inside com.mygame.engine.world.World
 
@@ -341,162 +413,203 @@ public class World {
                     ns.height()
             );
             // if you stored flags in kind or elsewhere, restore them here:
-            if (Node.Type.BASIC.equals(ns.type()) ) {
-                n.setBaseLeft(true);
-            }
-            // now re-add every port
+//            if (Node.Type.BASIC.equals(ns.type()) ) {
+//                n.setBaseLeft(true);
+//            }
+            // Convert port world pos → local offset
             for (PortSnapshot ps : ns.ports()) {
+                Vector2D local = ps.position().copy().subtracted(n.getPosition());
                 if (ps.direction() == Port.PortDirection.INPUT) {
-                    n.addInputPort(ps.type(), ps.position().copy());
+                    n.addInputPort(ps.type(), local);
                 } else {
-                    n.addOutputPort(ps.type(), ps.position().copy());
+                    n.addOutputPort(ps.type(), local);
                 }
+            }
+            // restore queued packets
+            for (Packet qs : ns.queue()) {
+                Packet p = qs;
+                p.setMobile(false);
+                n.enqueuePacket(p);
             }
             nodes.add(n);
         }
 
         connections.clear();
-        connections.addAll(
-                snap.connections().stream()
-                        .map(cs -> {
-                            Port from = nodes.stream()
-                                    .flatMap(n -> n.getPorts().stream())
-                                    .filter(p -> p.getCenter().equals(cs.fromPos()))
-                                    .findFirst().orElse(null);
-                            Port to   = nodes.stream()
-                                    .flatMap(n -> n.getPorts().stream())
-                                    .filter(p -> p.getCenter().equals(cs.toPos()))
-                                    .findFirst().orElse(null);
-                            List<Vector2D> bends = cs.bends();
-                            return (from != null && to != null) ? new Connection(from, to, bends) : null;
-                        })
-                        .filter(Objects::nonNull)
-                        .toList()
-        );
+        for (ConnectionSnapshot cs : snap.connections()) {
+            Port from = resolvePort(cs.fromPos(), cs.fromType(), nodes);
+            Port to   = resolvePort(cs.toPos(),   cs.toType(),   nodes);
+
+
+            if (from == null || to == null) {
+                System.out.println("⚠ couldn't resolve ports for connection: " + cs);
+                continue;
+            }
+            from.setConnectedPort(to);
+            to.setConnectedPort(from);
+            connections.add(new Connection(from, to, new ArrayList<>(cs.bends())));
+        }
 
         gameOver     = snap.isGameOver();
         viewOnlyMode = snap.isViewOnly();
     }
+    private static final double EPS = 1e-3; // or a pixel, e.g. 0.5–1.0
 
+    private Port resolvePort(Vector2D target,
+                             Port.PortType type,
+                             List<Node> nodes) {
 
-    public void createTestLevel1() {
-        packets.clear();
-        nodes.clear();
-        connections.clear();
-        hud.reset();
-        setGameOver(false);
+        Port best = null;
+        double bestDist = Double.POSITIVE_INFINITY;
 
-        // Base Left Node (emitter)
-        BasicNode baseLeft = new BasicNode(100, 250, cfg.nodeWidth, cfg.nodeHeight);
-        baseLeft.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
-                baseLeft.getHeight() / 3));
-        baseLeft.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
-                2 * baseLeft.getHeight() / 3));
-        baseLeft.addInputPort(
-                PortType.SQUARE,
-                new Vector2D(-cfg.portSize / 2, baseLeft.getHeight() * 0.5   -7));
-        baseLeft.setBaseLeft(true);
-        nodes.add(baseLeft);
-        baseLeft.getPortsPrinted();
-        baseLeft.dumpPorts();
+        for (Node n : nodes) {
+            for (Port p : n.getPorts()) {
+                if (p.getType() != type)     continue;
 
-        // Intermediate Node 1
-        VPNNode mid1 = new VPNNode(400, 350, cfg.nodeWidth, cfg.nodeHeight);
-        mid1.addInputPort(PortType.SQUARE, new Vector2D(-cfg.portSize / 2,
-                baseLeft.getHeight() / 3));
-        mid1.addInputPort(PortType.TRIANGLE, new Vector2D(-cfg.portSize / 2,
-                2*baseLeft.getHeight() / 3));
-        mid1.getPortsPrinted();
-
-
-
-//        mid1.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
-//                baseLeft.getHeight() / 3));
-        mid1.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
-                2 * baseLeft.getHeight() / 3));
-        nodes.add(mid1);
-
-        // Intermediate Node 2
-        BasicNode mid2 = new BasicNode(250, 250, cfg.nodeWidth, cfg.nodeHeight);
-        mid2.addInputPort(PortType.TRIANGLE, new Vector2D(-cfg.portSize / 2,
-                baseLeft.getHeight() / 2));
-        mid2.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
-                baseLeft.getHeight() / 2));
-        nodes.add(mid2);
-
-        BasicNode baseRight = new BasicNode(600, 150, cfg.nodeWidth, cfg.nodeHeight);
-
-        baseRight.addInputPort(PortType.SQUARE, new Vector2D(-cfg.portSize / 2,
-                2 * baseLeft.getHeight() / 4));
-
-        baseRight.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
-                baseLeft.getHeight() / 2 )); // loop back
-        nodes.add(baseRight);
-        for (Node node : nodes)
-            node.getPortsPrinted();
-
-
-
-        // Packets start flowing from left node periodically
-        for (int i = 0; i < 1; i++) {
-            Vector2D pos = new Vector2D(baseLeft.getPosition().x() + baseLeft.getWidth() / 2,
-                    baseLeft.getPosition().y() + baseLeft.getHeight() / 2);
-            Packet[] p = new Packet[(int) cfg.numberOfPacketsLevel1];
-            for (int j=0; j<cfg.numberOfPacketsLevel1; j++) {
-                if (j%2==0)
-                    p[j] = new SquarePacket(pos, GameConfig.squareLife, GameConfig.squareSize);
-                else
-                    p[j] = new TrianglePacket(pos, GameConfig.triangleLife, GameConfig.triangleSize);
-                p[j].setMobile(false);
-                baseLeft.enqueuePacket(p[j]);
-                hud.incrementTotalPackets();
-                System.out.println("packet " + j + " created");
-                System.out.println(Arrays.toString(baseLeft.getQueuedPackets().toArray()));
+                double d = p.getCenter().distanceTo(target);
+                if (d < bestDist) {
+                    best = p;
+                    bestDist = d;
+                }
             }
         }
-        for (Node n : nodes) {
-            n.setPacketEventListener(hud);   // HUDState already implements PacketEventListener
-        }
-        coinService.addCoins(10);
-        initialState = snapshot();
+        return (best != null && bestDist <= EPS) ? best : null;
     }
 
-    public void createTestLevel2() {
-        packets.clear();
-        nodes.clear();
-        connections.clear();
-        hud.reset();
-        gameOver = false;
 
-        BasicNode baseLeft = new BasicNode(50, 200, cfg.nodeWidth, cfg.nodeHeight);
-        baseLeft.addOutputPort(PortType.SQUARE, new Vector2D(
-                baseLeft.getWidth() - cfg.portSize / 2,
-                baseLeft.getHeight() / 3));
-        baseLeft.addOutputPort(PortType.TRIANGLE, new Vector2D(
-                baseLeft.getWidth() - cfg.portSize / 2,
-                2 * baseLeft.getHeight() / 3));
-        baseLeft.addInputPort(Port.PortType.SQUARE, new Vector2D(
-                -cfg.portSize/2,
-                baseLeft.getHeight()/2));
-        baseLeft.setBaseLeft(true);
-        nodes.add(baseLeft);
 
-        // … mid1, mid3, baseRight setup …
-
-        for (int i = 0; i < cfg.numberOfPacketsLevel2; i++) {
-            Vector2D pos = new Vector2D(
-                    baseLeft.getPosition().x() + baseLeft.getWidth()/2,
-                    baseLeft.getPosition().y() + baseLeft.getHeight()/2);
-            Packet p = (Math.random() > 0.5)
-                    ? new SquarePacket(pos, GameConfig.squareLife, GameConfig.squareSize)
-                    : new TrianglePacket(pos, GameConfig.triangleLife, GameConfig.triangleSize);
-            p.setMobile(false);
-            baseLeft.enqueuePacket(p);
-            hud.incrementTotalPackets();
-        }
-        nodes.forEach(n -> n.setPacketEventListener(hud));
-        initialState = snapshot();
-    }
+//    public void createTestLevel1() {
+//        packets.clear();
+//        nodes.clear();
+//        connections.clear();
+//        hud.reset();
+//        setGameOver(false);
+//
+//        // Base Left Node (emitter)
+//        BasicNode baseLeft = new BasicNode(100, 250, cfg.nodeWidth, cfg.nodeHeight);
+//        baseLeft.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
+//                baseLeft.getHeight() / 3));
+//        baseLeft.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
+//                2 * baseLeft.getHeight() / 3));
+//        baseLeft.addInputPort(
+//                PortType.SQUARE,
+//                new Vector2D(-cfg.portSize / 2, baseLeft.getHeight() * 0.5   -7));
+//        baseLeft.setBaseLeft(true);
+//        nodes.add(baseLeft);
+//        baseLeft.getPortsPrinted();
+//        baseLeft.dumpPorts();
+//
+//        // Intermediate Node 1
+//        VPNNode mid1 = new VPNNode(400, 350, cfg.nodeWidth, cfg.nodeHeight);
+//        mid1.addInputPort(PortType.SQUARE, new Vector2D(-cfg.portSize / 2,
+//                baseLeft.getHeight() / 3));
+//        mid1.addInputPort(PortType.TRIANGLE, new Vector2D(-cfg.portSize / 2,
+//                2*baseLeft.getHeight() / 3));
+//        mid1.getPortsPrinted();
+//
+//
+//
+////        mid1.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - PORT_SIZE / 2,
+////                baseLeft.getHeight() / 3));
+//        mid1.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
+//                2 * baseLeft.getHeight() / 3));
+//        nodes.add(mid1);
+//
+//        // Intermediate Node 2
+//        BasicNode mid2 = new BasicNode(250, 250, cfg.nodeWidth, cfg.nodeHeight);
+//        mid2.addInputPort(PortType.TRIANGLE, new Vector2D(-cfg.portSize / 2,
+//                baseLeft.getHeight() / 2));
+//        mid2.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
+//                baseLeft.getHeight() / 2));
+//        nodes.add(mid2);
+//
+//        BasicNode baseRight = new BasicNode(600, 150, cfg.nodeWidth, cfg.nodeHeight);
+//
+//        baseRight.addInputPort(PortType.SQUARE, new Vector2D(-cfg.portSize / 2,
+//                2 * baseLeft.getHeight() / 4));
+//
+//        baseRight.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
+//                baseLeft.getHeight() / 2 )); // loop back
+//        nodes.add(baseRight);
+//        for (Node node : nodes)
+//            node.getPortsPrinted();
+//
+//
+//
+//        // Packets start flowing from left node periodically
+//        for (int i = 0; i < 1; i++) {
+//            Vector2D pos = new Vector2D(baseLeft.getPosition().x() + baseLeft.getWidth() / 2,
+//                    baseLeft.getPosition().y() + baseLeft.getHeight() / 2);
+//            Packet[] p = new Packet[(int) cfg.numberOfPacketsLevel1];
+//            for (int j=0; j<cfg.numberOfPacketsLevel1; j++) {
+//                if (j%2==0)
+//                    p[j] = new SquarePacket(pos, GameConfig.squareLife, GameConfig.squareSize);
+//                else
+//                    p[j] = new TrianglePacket(pos, GameConfig.triangleLife, GameConfig.triangleSize);
+//                p[j].setMobile(false);
+//                baseLeft.enqueuePacket(p[j]);
+//                hud.incrementTotalPackets();
+//                System.out.println("packet " + j + " created");
+//                System.out.println(Arrays.toString(baseLeft.getQueuedPackets().toArray()));
+//            }
+//        }
+//        for (Node n : nodes) {
+//            n.setPacketEventListener(hud);   // HUDState already implements PacketEventListener
+//        }
+//        coinService.addCoins(10);
+//        initialState = snapshot();
+//    }
+//
+//    public void createTestLevel2() {
+//        packets.clear();
+//        nodes.clear();
+//        connections.clear();
+//        hud.reset();
+//        gameOver = false;
+//
+//        BasicNode baseLeft = new BasicNode(50, 200, cfg.nodeWidth, cfg.nodeHeight);
+//        baseLeft.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
+//                baseLeft.getHeight() / 3));
+//        baseLeft.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
+//                2 * baseLeft.getHeight() / 3));
+//        baseLeft.addInputPort(Port.PortType.SQUARE, new Vector2D(-cfg.portSize / 2, baseLeft.getHeight()/2));
+//        baseLeft.setBaseLeft(true);
+//        nodes.add(baseLeft);
+//
+//        BasicNode mid1 = new BasicNode(250, 50, cfg.nodeWidth, cfg.nodeHeight);
+//        mid1.addInputPort(Port.PortType.SQUARE, new Vector2D(-cfg.portSize / 2, baseLeft.getHeight()/2));
+//        mid1.addOutputPort(Port.PortType.SQUARE, new Vector2D(baseLeft.getWidth() -cfg.portSize / 2, baseLeft.getHeight()/2));
+//        nodes.add(mid1);
+//
+////        SystemNode mid2 = new SystemNode(200, 350);
+////        mid2.addInputPort(Port.PortType.TRIANGLE, new Vector2D(-PORT_SIZE / 2, baseLeft.getHeight()/2));
+////        mid2.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() -PORT_SIZE / 2, baseLeft.getHeight()/2));
+////        nodes.add(mid2);
+//
+//        BasicNode mid3 = new BasicNode(450, 300, cfg.nodeWidth, cfg.nodeHeight);
+//        mid3.addInputPort(Port.PortType.SQUARE, new Vector2D(-cfg.portSize / 2, 1*baseLeft.getHeight()/3));
+//        mid3.addInputPort(Port.PortType.TRIANGLE, new Vector2D(-cfg.portSize / 2, 2*baseLeft.getHeight()/3));
+//        mid3.addOutputPort(Port.PortType.SQUARE, new Vector2D(baseLeft.getWidth() -cfg.portSize / 2, baseLeft.getHeight()/2));
+//        nodes.add(mid3);
+//
+//        BasicNode baseRight = new BasicNode(650, 400, cfg.nodeWidth, cfg.nodeHeight);
+//        baseRight.addInputPort(PortType.TRIANGLE, new Vector2D(-cfg.portSize / 2, baseLeft.getHeight()/2));
+//        baseRight.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() -cfg.portSize / 2, baseLeft.getHeight()/2));
+//        nodes.add(baseRight);
+//
+//        for (int i = 0; i < cfg.numberOfPacketsLevel2; i++) {
+//            Vector2D pos = new Vector2D(
+//                    baseLeft.getPosition().x() + baseLeft.getWidth()/2,
+//                    baseLeft.getPosition().y() + baseLeft.getHeight()/2);
+//            Packet p = (Math.random() > 0.5)
+//                    ? new SquarePacket(pos, GameConfig.squareLife, GameConfig.squareSize)
+//                    : new TrianglePacket(pos, GameConfig.triangleLife, GameConfig.triangleSize);
+//            p.setMobile(false);
+//            baseLeft.enqueuePacket(p);
+//            hud.incrementTotalPackets();
+//        }
+//        nodes.forEach(n -> n.setPacketEventListener(hud));
+//        initialState = snapshot();
+//    }
     /** Returns all live, mobile packets within radius r of point c. */
     private List<Packet> packetsNear(Vector2D c, double r) {
         double r2 = r * r;

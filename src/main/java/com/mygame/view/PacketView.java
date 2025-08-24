@@ -17,28 +17,29 @@ public class PacketView implements View<PacketSnapshot> {
     private final Map<Packet.Shape, Image> base = new EnumMap<>(Packet.Shape.class);
 
     // overlays
-    private final Image antiTrojanNode  = cache.load("/assets/nodes/AntiTrojanNodePic.jpg");
-    private final Image distributorNode = cache.load("/assets/overlays/DistributorNodePic.jpg");
-    private final Image mergerNode = cache.load("/assets/overlays/MergerNodePic.jpg");
-    private final Image saboteurNode = cache.load("/assets/overlays/SaboteurNodePic.jpg");
-    private final Image spyNode = cache.load("/assets/overlays/SpyNodePic.jpg");
-    private final Image vpnNode = cache.load("/assets/overlays/VPNNodePic.jpg");
+    private final Image antiTrojanNode  = cache.load("/nodes/AntiTrojanNodePic.jpg");
+    private final Image distributorNode = cache.load("/nodes/DistributorNodePic.jpg");
+    private final Image mergerNode = cache.load("/nodes/MergerNodePic.jpg");
+    private final Image saboteurNode = cache.load("/nodes/SaboteurNodePic.jpg");
+    private final Image spyNode = cache.load("/nodes/SpyNodePic.jpg");
+    private final Image vpnNode = cache.load("/nodes/VPNNodePic.jpg");
 
     //packets
-    private final Image squarePacket  = cache.load("/assets/nodes/square.png");
-    private final Image trianglePacket  = cache.load("/assets/packets/triangle.png");
-    private final Image infinityPacket  = cache.load("/assets/packets/infinity.png");
-    private final Image hexagonPacket  = cache.load("/assets/packets/hexagon.png");
-    private final Image bulkAPacket  = cache.load("/assets/packets/bulk_a.png");
-    private final Image bulkBPacket  = cache.load("/assets/packets/bulk_b.png");
-    private final Image bitPacket  = cache.load("/assets/nodes/bit.png");
-    private final Image confidentialAPacket  = cache.load("/assets/packets/confidential_a.png");
-    private final Image confidentialBPacket  = cache.load("/assets/packets/confidential_b.png");
-    private final Image protectedPacket  = cache.load("/assets/nodes/protected.png");
-    private final Image trojanPacket  = cache.load("/assets/nodes/trojan.png");
+    private final Image squarePacket  = null;
+    private final Image trianglePacket  = null;
+    private final Image infinityPacket  = cache.load("/packets/infinity.png");
+    private final Image hexagonPacket  = cache.load("/packets/hexagon.png");
+    private final Image bulkAPacket  = cache.load("/packets/bulk_a.png");
+    private final Image bulkBPacket  = cache.load("/packets/bulk_b.png");
+    private final Image bitPacket  = cache.load("/nodes/bit.png");
+    private final Image confidentialAPacket  = cache.load("/packets/confidential_a.png");
+    private final Image confidentialBPacket  = cache.load("/packets/confidential_b.png");
+    private final Image protectedPacket  = cache.load("/nodes/protected.png");
+    private final Image trojanPacket  = cache.load("/nodes/trojan.png");
 
 
     public PacketView() {
+        System.out.println();
         base.put(Packet.Shape.SQUARE,        null);
         base.put(Packet.Shape.TRIANGLE,      null);
         base.put(Packet.Shape.INFINITY,      cache.load("/packets/infinity.png"));
@@ -65,7 +66,7 @@ public class PacketView implements View<PacketSnapshot> {
             drawPrimitiveFallback(g, s);
             return;
         }
-        System.out.println(s.shape());
+        //System.out.println(s.shape());
 
         // base sprite
         Draw.imageCentered(g, img, pos.x(), pos.y(), size, alpha, 0);

@@ -2,6 +2,7 @@ package com.mygame.ui;
 
 import com.mygame.core.GameState;
 
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -20,14 +21,16 @@ public class GameOverPanel extends JPanel {
         JButton nextLevelBtn = null;
         if ((lost * 100.0) / Math.max(1, total)<49.999) {
             declaration = new JLabel("YOU WON", SwingConstants.CENTER);
-            if (GameState.currentLevel==1) {
-                nextLevelBtn = new JButton("Proceed to Level 2");
+
+            if (!GameState.currentLevelID.equals("level5")) {
+                nextLevelBtn = new JButton("Proceed to Level"+(GameState.currentLevelInt+1));
                 nextLevelBtn.addActionListener(e -> {
-                    GameState.currentLevel = 2;
+                    GameState.currentLevelID = "level"+(GameState.currentLevelInt+1);
+                    GameState.currentLevelInt = GameState.currentLevelInt+1;
                     onRestart.run();
                 });
             }
-            else if (GameState.currentLevel==2) {
+            else {
                 declaration = new JLabel("YOU WON THE GAME", SwingConstants.CENTER);
             }
         }

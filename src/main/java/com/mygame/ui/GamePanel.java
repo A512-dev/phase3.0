@@ -90,7 +90,7 @@
 //            });
 //
 //            add(playAgainBtn);
-//            JButton switchLevelBtn = new JButton("Level 2");
+//            JButton switchLevelBtn = new JButton("LevelBase 2");
 //            switchLevelBtn.setBounds(200, 10, 80, 30);
 //            switchLevelBtn.setFocusable(true);
 //            switchLevelBtn.addActionListener(e -> {
@@ -110,7 +110,7 @@
 //                });
 //                add(playAgainBtn);
 //            }
-//            JButton switchLevelBtn = new JButton("Level 1");
+//            JButton switchLevelBtn = new JButton("LevelBase 1");
 //            switchLevelBtn.setBounds(200, 10, 80, 30);
 //            switchLevelBtn.setFocusable(true);
 //            switchLevelBtn.addActionListener(e -> {
@@ -503,6 +503,7 @@ package com.mygame.ui;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.function.Consumer;
@@ -510,6 +511,8 @@ import java.util.function.Consumer;
 import com.mygame.core.GameConfig;
 import com.mygame.engine.world.WorldController;
 import com.mygame.engine.physics.Vector2D;
+import com.mygame.engine.world.level.Level;
+
 import com.mygame.model.Connection;
 import com.mygame.engine.GameLoop;
 import com.mygame.engine.loop.TimeController;
@@ -559,11 +562,11 @@ public final class GamePanel extends JPanel
 
 
     /* ────────────────────────────── ctor ───────────────────────────────────── */
-    public GamePanel(Runnable restartLevel) {
+    public GamePanel(Runnable restartLevel, Level level) {
         setPreferredSize(new Dimension(800, 600));
         setDoubleBuffered(true);
         setFocusable(true);
-        world = new World();
+        world = new World(level);
         ctrl  = new WorldController(world);
 
         world.setPacketEventListener(world.getHudState());
@@ -686,9 +689,15 @@ public final class GamePanel extends JPanel
                     world.getTimeController().togglePause();
                 }
                 if (code == KeyEvent.VK_SPACE) {
+                    System.out.println("Nodes="+world.getNodes().toString());
+                    System.out.println("node0 packets="+ Arrays.toString(world.getNodes().get(0).getQueuedPackets().toArray()));
+                    System.out.println("node1 packets="+ Arrays.toString(world.getNodes().get(1).getQueuedPackets().toArray()));
+                    System.out.println("node2 packets="+ Arrays.toString(world.getNodes().get(2).getQueuedPackets().toArray()));
+                    System.out.println("node3 packets="+ Arrays.toString(world.getNodes().get(3).getQueuedPackets().toArray()));
                     TimeController tc = world.getTimeController();
                     if (tc.isWaitingToStart())      tc.startFromFreeze();
                     else                            tc.toggleFrozen();
+
                 }
                 if (code == KeyEvent.VK_S) {
                     shopOpen = !shopOpen;
@@ -768,9 +777,9 @@ public final class GamePanel extends JPanel
                 Port destination = world.findPortAtPosition(new Vector2D(e.getX(), e.getY()));
                 if (draftConnection != null && destination!=null) {
                     draftConnection.setToCandidate(destination);
-                    /* break old links cleanly */
-                    world.removeConnectionBetween(draftConnection.getFrom(), draftConnection.getFrom().getConnectedPort());
-                    world.removeConnectionBetween(destination,        destination.getConnectedPort());
+//                    /* break old links cleanly */
+//                    world.removeConnectionBetween(draftConnection.getFrom(), draftConnection.getFrom().getConnectedPort());
+//                    world.removeConnectionBetween(destination,        destination.getConnectedPort());
 
                     draftConnection.getFrom().setConnectedPort(destination);
                     destination.setConnectedPort(draftConnection.getFrom());
@@ -778,11 +787,17 @@ public final class GamePanel extends JPanel
                     // مسیر را تبدیل به Connection واقعی بکنیم
                     Connection newConn = new Connection(draftConnection.getFrom(), destination, draftConnection.getBends());
 
+
                     if (!newConn.isValidAgainst(world.getNodes())) {
                         showError("it goes through a node");
                     } else {
                         world.addConnection(newConn);
+
+                        world.captureInitialSnapshot();
                     }
+
+
+                    System.out.println(world.getInitialState().connections().toString());
 
                     draftConnection = null; // پاک کردن حالت موقت
                     repaint();
@@ -872,7 +887,17 @@ public final class GamePanel extends JPanel
             world.setViewOnlyMode(true);
             world.getTimeController().setTimeMultiplier(CFG.fastGameSpeed);
             world.getTimeController().jumpTo(t);
-            world.getTimeController().startFromFreeze();
+            if (world.getTimeController().isWaitingToStart())
+                world.getTimeController().startFromFreeze();
+            else
+                world.getTimeController().toggleFrozen();
+
+
+            System.out.println("Nodes="+world.getNodes().toString());
+            System.out.println("node0 packets="+ Arrays.toString(world.getNodes().get(0).getQueuedPackets().toArray()));
+            System.out.println("node1 packets="+ Arrays.toString(world.getNodes().get(1).getQueuedPackets().toArray()));
+            System.out.println("node2 packets="+ Arrays.toString(world.getNodes().get(2).getQueuedPackets().toArray()));
+            System.out.println("node3 packets="+ Arrays.toString(world.getNodes().get(3).getQueuedPackets().toArray()));
         } else {
             world.setViewOnlyMode(false);
             world.getTimeController().stopJump();

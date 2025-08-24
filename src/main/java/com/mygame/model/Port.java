@@ -1,6 +1,7 @@
 package com.mygame.model;
 
 import com.mygame.core.GameConfig;
+
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.model.node.Node;
 import com.mygame.model.node.BasicNode;
@@ -20,7 +21,7 @@ public class Port {
 
     private double busyTimer = 0;
     // In Port.java
-    private double emitCooldown = 1.0;     // seconds between packets
+    private double emitCooldown = 1/GameConfig.defaultConfig().timeMultiplier;     // seconds between packets
     private double timeUntilNextEmit = 0;  // counts down
     private Port connectedPort;
     /** The Connection object this port participates in (if any). */
@@ -35,6 +36,9 @@ public class Port {
     /** Wire‐back‐pointer: which Connection this port is on */
     public Connection getWire()      { return wire; }
     public void setWire(Connection wire) {
+        if (wire==null) {
+            this.wire = null; return;
+        }
         this.wire = wire;
         if (this.equals(wire.getFrom()))
             this.connectedPort = wire.getTo();

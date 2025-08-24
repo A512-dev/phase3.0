@@ -42,4 +42,11 @@ public record PacketSnapshot(
     }
 
 
+//    public Packet rehydrateInNodePackets() {
+//        Packet packet;
+//        if (isMobile)
+//            return null;
+//        packetClass
+//        return null;
+//    }
 }

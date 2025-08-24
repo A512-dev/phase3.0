@@ -97,7 +97,7 @@ public abstract class Node implements PacketEventListener {
     }
     protected void emitQueued(List<Packet> worldPackets){
         if(!queue.isEmpty()){
-            Packet p = queue.poll();
+            Packet p = queue.peekFirst();
             if (p instanceof SquarePacket) {
                 List<Port> squarePorts = outputs.stream()
                         .filter(port -> port.getType() == Port.PortType.SQUARE)
@@ -109,6 +109,7 @@ public abstract class Node implements PacketEventListener {
                             out.getWire().transmit(p);
                             p.setMobile(true);
                             worldPackets.add(p);
+                            queue.remove(p);
                             out.resetCooldown();
                             return;                       // emit one packet per update
                         }
@@ -126,6 +127,7 @@ public abstract class Node implements PacketEventListener {
                             out.getWire().transmit(p);
                             p.setMobile(true);
                             worldPackets.add(p);
+                            queue.remove(p);
                             out.resetCooldown();
                             return;                       // emit one packet per update
                         }
@@ -144,6 +146,7 @@ public abstract class Node implements PacketEventListener {
                                 out.getWire().transmit(p);
                                 p.setMobile(true);
                                 worldPackets.add(p);
+                                queue.remove(p);
                                 out.resetCooldown();
                                 return;                       // emit one packet per update
                             }
@@ -161,6 +164,7 @@ public abstract class Node implements PacketEventListener {
                                 out.getWire().transmit(p);
                                 p.setMobile(true);
                                 worldPackets.add(p);
+                                queue.remove(p);
                                 out.resetCooldown();
                                 return;                       // emit one packet per update
                             }
@@ -174,6 +178,7 @@ public abstract class Node implements PacketEventListener {
                         out.getWire().transmit(p);
                         p.setMobile(true);
                         worldPackets.add(p);
+                        queue.remove(p);
                         out.resetCooldown();
                         return;                       // emit one packet per update
                     }
@@ -186,6 +191,7 @@ public abstract class Node implements PacketEventListener {
                     out.getWire().transmit(p);
                     p.setMobile(true);
                     worldPackets.add(p);
+                    queue.remove(p);
                     out.resetCooldown();
                     break;                       // emit one packet per update
                 }
@@ -214,7 +220,6 @@ public abstract class Node implements PacketEventListener {
                 port.tickCooldown(dt);
                 System.out.println("port CoolDown subtracted dt");
             }
-
         }
         if (!queue.isEmpty()) {
             emitQueued(worldPackets);

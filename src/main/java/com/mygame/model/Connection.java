@@ -55,9 +55,6 @@
             for (Vector2D bend: bendsD)
                 addBend(bend);
 
-            from.setWire(this);
-            to.setWire(this);
-
             this.length = from.getPosition().distanceTo(to.getPosition());
 
             recalcLength();
@@ -353,7 +350,8 @@
             return true;
         }
         private boolean segmentIntersectsNode(Vector2D a, Vector2D b, Node node) {
-            Vector2D center = node.getPosition();
+            Vector2D posNode = node.getPosition();
+            Vector2D center = new Vector2D(posNode.x()+node.getWidth()/2, posNode.y()+node.getHeight()/2);
             double radius = node.getWidth()/2; // یا طول نصف ضلع مربع
 
             // می‌توان بررسی کرد آیا فاصله نقطه به قطعه کمتر از شعاع است:

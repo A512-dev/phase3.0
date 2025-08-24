@@ -69,28 +69,55 @@ import com.mygame.core.GameConfig;
 public class TimeController {
     GameConfig cfg = GameConfig.defaultConfig();
     private double realTimeAccumulator = 0;
-    private double targetTime = -1;
+
     private boolean paused = false;
-    private double timeMultiplier = cfg.timeMultiplier;
+
     private boolean waitingToStart = true;
     private boolean frozen = true;
     private static boolean firstStart = true;
+
+
+
+
+    // NEW — fast-forward “target time” mode
+    private double timeMultiplier = 1;
+    private double targetTime = -1;
+
+    // basic controls
+    public boolean isFrozen() {return frozen;}
+    public boolean isPaused() {return paused;}
+    public double getTargetTime() {return targetTime;}
+    public double getTimeMultiplier() {return timeMultiplier;}
     public static boolean isFirstStart() {
         return firstStart;
     }
-
+    public void waitToStart() {
+        waitingToStart = true;
+    }
+    public void startFromFreeze()  {
+        waitingToStart = false;
+        frozen = false;
+        paused = false;
+        firstStart = true;
+    }
+    public void toggleFrozen()     { frozen = !frozen; }
+    public void togglePause()      { paused = !paused; }
+    public void setTimeMultiplier(double m) { timeMultiplier = Math.max(1, m); }
     public static void setFirstStart(boolean firstStart) {
         TimeController.firstStart = firstStart;
     }
 
 
-    public void toggleFrozen() {
-        frozen = !frozen;
+    public void jumpTo(double seconds) {
+        this.targetTime = seconds;
+    }
+    public void stopJump() {
+        this.targetTime = -1;
     }
 
-    public boolean isFrozen() {
-        return frozen;
-    }
+
+
+
 
     public void updateRealTime(double dt) {
         if (paused) return;
@@ -112,37 +139,11 @@ public class TimeController {
         return 1.0 / 60.0;
     }
 
-    public void jumpTo(double seconds) {
-        this.targetTime = seconds;
-    }
 
-    public double getTargetTime() {
-        return targetTime;
-    }
 
-    public void stopJump() {
-        this.targetTime = -1;
-    }
 
-    public boolean isPaused() {
-        return paused;
-    }
 
-    public void togglePause() {
-        paused = !paused;
-    }
 
-    public void setTimeMultiplier(double multiplier) {
-        this.timeMultiplier = multiplier;
-    }
-
-    public void waitToStart() {
-        waitingToStart = true;
-    }
-
-    public void startFromFreeze() {
-        waitingToStart = false;
-    }
 
     public boolean isWaitingToStart() {
         return waitingToStart;

@@ -10,6 +10,9 @@ import com.mygame.model.packet.bulkPacket.BitPacket;
 import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
 
 public abstract class Packet implements PhysicsBody {
+
+    protected Packet(Vector2D spawn, double health, double radius){ this.pos = spawn.copy(); this.health=health; this.radius = radius; }
+
     // --- add fields ---
     private Vector2D impulse = new Vector2D();   // transient "kick"
     private static final double IMPULSE_DECAY = 8.0; // 1/s, tune or move to Database
@@ -108,7 +111,7 @@ public abstract class Packet implements PhysicsBody {
     public Port getFromPort() { return fromPort; }
     public Port getToPort() { return toPort; }
 
-    protected Packet(Vector2D spawn, double health, double radius){ this.pos = spawn.copy(); this.health=health; this.radius = radius; }
+
 
 
 
