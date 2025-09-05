@@ -7,6 +7,7 @@
 
     import com.mygame.model.packet.Packet;
     import com.mygame.model.packet.ProtectedPacket;
+    import com.mygame.model.packet.TrojanPacket;
     import com.mygame.model.packet.bulkPacket.types.BulkPacketA;
     import com.mygame.model.packet.bulkPacket.types.BulkPacketB;
     import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
@@ -33,8 +34,8 @@
         private double length;                                          // cached
 
         /* ── packets currently travelling along this wire ────────── */
-        public static final class PacketOnWire {
-            public final Packet pkt;
+        public final static class PacketOnWire {
+            public Packet pkt;
             public double       s;        // distance along wire
             public Vector2D     off;      // lateral offset from centre-line
             public int          segmentIndex;   // NEW: track current segment
@@ -215,6 +216,11 @@
             else if (p instanceof InfinityPacket) {
                 // TODO: 8/13/2025 infinity packet compatible?
             }
+            else if (p instanceof TrojanPacket) {
+                v0 = GameConfig.SPEED_OF_TROJAN_PACKET;
+                p.setVelocity(dir.multiplied(v0));
+                p.setAcceleration(new Vector2D());
+            }
             else if (p instanceof ProtectedPacket) {
                 if (((ProtectedPacket) p).getMovementType() == ProtectedPacket.MovementType.SQUARE) {
                     if (getFrom().getType() == Port.PortType.SQUARE) {
@@ -359,4 +365,16 @@
             double d = Vector2D.distPointToSegment(center, a, b);
             return d <= radius;
         }
+        // in com.mygame.model.Connection
+        public boolean replaceInTransit(Packet oldPkt, Packet newPkt) {
+            for (PacketOnWire pow : inTransit) {
+                if (pow.pkt == oldPkt) {
+                    pow.pkt = newPkt;
+                    return true;
+                }
+            }
+            return false;
+        }
+
     }
+

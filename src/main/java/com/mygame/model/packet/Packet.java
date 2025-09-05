@@ -38,7 +38,7 @@ public abstract class Packet implements PhysicsBody {
         return noise>0;
     };
 
-    public void addNoise(int i) {
+    public void addNoise(double i) {
         noise += i;
     }
 
@@ -161,7 +161,7 @@ public abstract class Packet implements PhysicsBody {
 
     public void onCollision(Packet other) {
         // base: reverse velocity a bit
-        vel.multiply(-0.5);
+        vel.multiply(-0.2);
     }
 
     /* ------------------------------------------------ arrive / track-line */

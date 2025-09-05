@@ -49,7 +49,7 @@ public class PacketView implements View<PacketSnapshot> {
         base.put(Packet.Shape.CONFIDENTIAL_S,cache.load("/packets/confidentialSmall.png"));
         base.put(Packet.Shape.CONFIDENTIAL_L,cache.load("/packets/confidentialLarge.png"));
         base.put(Packet.Shape.LOCK,          cache.load("/packets/protected.png")); // fallback
-        base.put(Packet.Shape.TROJAN,        cache.load("/packets/trojan_base.png")); // optional
+        base.put(Packet.Shape.TROJAN,       null); // optional
     }
 
     public void render(Graphics2D g, PacketSnapshot s) {
@@ -102,6 +102,11 @@ public class PacketView implements View<PacketSnapshot> {
             g.fillPolygon(xs, ys, 3);
             g.setColor(Color.BLACK);
             g.drawPolygon(xs, ys, 3);
+        }
+        else if (s.shape() == Packet.Shape.TROJAN) {
+            int half = size / 2;
+            g.setColor(Color.black);
+            g.drawOval(x+half, y+half, half, half);
         }
 
 

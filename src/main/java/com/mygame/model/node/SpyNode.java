@@ -1,6 +1,7 @@
 // com/mygame/model/node/SpyNode.java
 package com.mygame.model.node;
 
+import com.mygame.model.Connection;
 import com.mygame.model.PacketEventListener;
 import com.mygame.model.Port;
 import com.mygame.model.packet.Packet;
@@ -8,23 +9,25 @@ import com.mygame.model.packet.Packet;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** Spy systems:
+/**
+ * Spy rules:
  *  - Confidential packets are destroyed on entry.
- *  - VPN–protected packets are unaffected → forwarded locally.
- *  - Other packets teleport: enter any spy, exit from a random other spy.
+ *  - Protected packets are queued & forwarded LOCALLY (no teleport).
+ *  - Normal packets are queued & when possible teleported:
+ *      enter any Spy -> exit from a random other Spy with a ready output.
+ *    If no exit is ready, keep queued and try again next update.
+ *    As a final fallback, forward locally so they don't starve forever.
  */
 public final class SpyNode extends Node {
 
-    /* global registry of all spies so we can teleport between them */
+    /* Registry so spies can find each other for teleport exits */
     private static final List<SpyNode> REGISTRY = new ArrayList<>();
     private static final Random RNG = new Random();
 
-    /* optional clustering support: linkSpies(a,b,...) assigns a shared groupId */
+    /* Optional grouping (linked clusters) */
     private static int NEXT_GROUP = 1;
     private static final Map<Integer, Set<SpyNode>> GROUPS = new HashMap<>();
-
-    private int groupId = 0; // 0 = ungrouped → use REGISTRY
-
+    private int groupId = 0; // 0 => ungrouped (use REGISTRY)
 
     public SpyNode(double x, double y, double width, double height) {
         super(x, y, width, height);
@@ -41,132 +44,155 @@ public final class SpyNode extends Node {
         for (SpyNode s : spies) s.groupId = gid;
     }
 
-    /* convenience: connected output ports on this node */
-    private List<Port> connectedOutputs() {
+    /* -------- helpers -------- */
+
+    /** outputs that are connected + have a wire; optionally must be ready to emit */
+    private List<Port> connectedOutputs(boolean requireReady) {
         return outputs.stream()
                 .filter(o -> o.getConnectedPort() != null && o.getWire() != null)
+                .filter(o -> !requireReady || o.canEmit())
                 .collect(Collectors.toList());
     }
 
-    /* choose another spy (≠ this) that has at least one connected output */
-    private SpyNode pickExitSpy() {
-        List<SpyNode> candidates = REGISTRY.stream()
-                .filter(s -> s != this && !s.connectedOutputs().isEmpty())
-                .collect(Collectors.toList());
-        if (candidates.isEmpty()) return null;
-        for (SpyNode spyNode: candidates) {
-            SpyNode candidate = candidates.get(RNG.nextInt(candidates.size()));
-            for (Port port: candidate.getOutputs()) {
-                if (!port.isEmitting() && port.getConnectedPort()!=null && port.getConnectedPort().getOwner().isActive())
-                    return candidate;
-            }
-        }
-        return null;
+    /** pick a random ready output (prefer idle ones if you track emitting) */
+    private Port pickReadyOut(List<Port> outs) {
+        if (outs.isEmpty()) return null;
+        return outs.get(RNG.nextInt(outs.size())); // outs already 'ready' when we call this
+    }
+    private boolean hasAnyWiredOutput(SpyNode node) {
+        return node.outputs.stream().anyMatch(o -> o.getConnectedPort()!=null && o.getWire()!=null);
     }
 
-    /* candidates inside my group (if any), otherwise all spies */
+    /** candidate exit spies in my group if grouped, else any others */
     private List<SpyNode> candidateExits() {
+        Collection<SpyNode> pool;
         if (groupId != 0) {
             Set<SpyNode> set = GROUPS.get(groupId);
-            if (set != null) {
-                return set.stream()
-                        .filter(s -> s != this && !s.connectedOutputs().isEmpty())
-                        .collect(Collectors.toList());
-            }
+            pool = (set != null) ? set : List.of();
+        } else {
+            pool = REGISTRY;
         }
-        // fallback: any other spy with at least one connected output
-        return REGISTRY.stream()
-                .filter(s -> s != this && !s.connectedOutputs().isEmpty())
+        // other spies (≠ this) that have at least one READY, connected output
+        return pool.stream()
+                .filter(s -> s != this)
+                .filter(s -> !s.connectedOutputs(true).isEmpty())
                 .collect(Collectors.toList());
     }
 
+    private SpyNode pickExitSpy() {
+        List<SpyNode> candidates = candidateExits();
+        if (candidates.isEmpty()) return null;
+        return candidates.get(RNG.nextInt(candidates.size()));
+    }
 
+    /* -------- Node hooks -------- */
 
-    /* ---------- Node hooks ---------- */
-
-    /** some callers use this form; delegate to the port-aware handler */
+    /** some callers use this form; delegate to port-aware */
     @Override public void onDelivered(Packet p) { onDelivered(p, null); }
 
-    /** main entry: decide what to do with the packet */
+    /** enqueue everything except Confidential (destroy those) */
     @Override
     public void onDelivered(Packet p, Port at) {
-        super.onDelivered(p, at);
-        // 1) confidential → removed
+        // Confidential ⇒ removed
         if (p.isConfidentialPacket()) {
             p.setAlive(false);
-            lose(p);                 // notify global listener as "lost"
+            lose(p); // notify HUD as "lost"
             return;
         }
+        // Protected / Normal ⇒ queue; actual emission decided in update()
+        if (queue.size()>=1) {
+            p.setAlive(false);
+            lose(p); // notify HUD as "lost"
+            return;
+        }
+        enqueuePacket(p);
+    }
 
-        // 2) protected by VPN → unaffected: forward locally (no teleport)
+    /** emit logic: one packet per tick max */
+    @Override
+    public void update(double dt, List<Packet> worldPackets) {
+        for (Port port : getPorts()) {
+            //time of cooldown of port is longer
+            if (port.isEmitting()) port.tickCooldown(0.3*dt);
+        }
+
+        if (queue.isEmpty()) return;
+
+        Packet p = ((ArrayDeque<Packet>)queue).peekFirst();
+
+        boolean emitted = false;
+
+
+        // protected => forward locally from THIS spy
         if (p.isProtectedPacket()) {
-            forwardLocally(p);
+            if (emitLocal(p, worldPackets)) {
+                ((ArrayDeque<Packet>)queue).removeFirst();
+            }
+            // else: no ready local output yet ⇒ keep queued and try next frame
             return;
         }
 
-        // 3) normal packet → teleport to a random other spy (if possible)
+        // normal => try teleport exit first; if none ready, try local; else keep queued
+        if (emitFromExitSpyOrLocal(p, worldPackets)) {
+            ((ArrayDeque<Packet>)queue).removeFirst();
+        }
+    }
+
+    /** try to emit from THIS spy; return true on success */
+    private boolean emitLocal(Packet p, List<Packet> worldPackets) {
+        List<Port> outs = connectedOutputs(true); // require canEmit()
+        if (outs.isEmpty()) return false;
+
+        Port out = pickReadyOut(outs);
+        if (out == null) return false;
+
+        Connection wire = out.getWire();
+        if (wire == null) return false;
+
+        wire.transmit(p);
+        p.setMobile(true);
+        worldPackets.add(p);
+        out.resetCooldown();
+        return true;
+    }
+
+    /** try to emit from a random EXIT spy; if none ready, fallback to local; return true on success */
+    private boolean emitFromExitSpyOrLocal(Packet p, List<Packet> worldPackets) {
         SpyNode exit = pickExitSpy();
         if (exit != null) {
-            exit.forwardFromHere(p);  // transmit from exit spy
-        } else {
-            // fallback: no exit spies or no connected outputs → forward locally
-            forwardLocally(p);
+            List<Port> outs = exit.connectedOutputs(true); // require canEmit at exit
+            Port out = exit.pickReadyOut(outs);
+            if (out != null) {
+                Connection wire = out.getWire();
+                if (wire != null) {
+                    wire.transmit(p);
+                    p.setMobile(true);
+                    worldPackets.add(p);
+                    out.resetCooldown();
+                    // mutation callback to say "teleported"
+                    PacketEventListener lis = exit.packetEventListener;
+                    if (lis != null) lis.onMutation(p, p, "SPY_EXIT");
+                    return true;
+                }
+            }
         }
+        // fallback: try local
+        return emitLocal(p, worldPackets);
     }
-
-    /** forward from THIS spy through one of its connected outputs */
-    private void forwardLocally(Packet p) {
-        forwardFromNode(this, p, null);
-    }
-
-    /** forward from an arbitrary spy node (used by teleport exit) */
-    private void forwardFromHere(Packet p) {
-        forwardFromNode(this, p, null);
-    }
-
-    /** forward from a specific spy node through one of its connected outputs */
-    private static void forwardFromNode(SpyNode node, Packet p, String mutationReason) {
-        List<Port> outs = node.connectedOutputs();
-        if (outs.isEmpty()) {
-            // nowhere to go → queue so it doesn't disappear
-            node.enqueuePacket(p);
-            return;
-        }
-        // prefer an output whose wire isn't currently emitting if you track that
-        Port out = pickBestOut(outs);
-        // notify mutation if this was a teleport
-        if (mutationReason != null) {
-            PacketEventListener lis = node.packetEventListener;
-            if (lis != null) lis.onMutation(p, p, mutationReason);
-        }
-        // safe-guard wire use
-        var wire = out.getWire();
-        if (wire == null) {
-            node.enqueuePacket(p);
-            return;
-        }
-        wire.transmit(p);
-    }
-
-    private static Port pickBestOut(List<Port> outs) {
-        // prefer a non-busy port if your Port has such a signal; otherwise pick random
-        List<Port> idle = outs.stream().filter(o -> !o.isEmitting()).collect(Collectors.toList());
-        if (!idle.isEmpty()) return idle.get(RNG.nextInt(idle.size()));
-        return outs.get(RNG.nextInt(outs.size()));
-    }
-
-
-    /* spies don’t emit on their own each tick */
-    @Override public void update(double dt, List<Packet> worldPackets) { /* no-op */ }
 
     /* PacketEventListener passthroughs (no special behavior here) */
     @Override public void onLost(Packet p) { /* optional: log */ }
     @Override public void onCollision(Packet a, Packet b) { /* not used here */ }
 
-    /* queue is unused for spies */
-    @Override public Collection<Packet> getQueuedPackets() { return List.of(); }
+    @Override public Collection<Packet> getQueuedPackets() { return queue; }
 
     @Override public Node copy() {
         return new SpyNode(position.x(), position.y(), width, height);
+    }
+
+    public static void resetRegistry() {
+        REGISTRY.clear();
+        GROUPS.clear();
+        NEXT_GROUP = 1;
     }
 }

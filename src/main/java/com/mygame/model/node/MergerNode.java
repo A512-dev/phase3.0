@@ -69,7 +69,7 @@ public final class MergerNode extends Node {
 
     @Override
     public Collection<Packet> getQueuedPackets() {
-        return null;
+        return queue;
     }
 
     @Override
@@ -80,6 +80,6 @@ public final class MergerNode extends Node {
 
     @Override
     public Node copy() {
-        return new DistributorNode(this.getX(), this.getY(), this.getWidth(), this.getHeight());
+        return new MergerNode(this.getX(), this.getY(), this.getWidth(), this.getHeight());
     }
 }

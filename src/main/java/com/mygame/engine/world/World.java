@@ -410,6 +410,32 @@ public class World {
     }
     // inside com.mygame.engine.world.World
 
+    // World.java
+
+    private Node createNodeFromSnapshot(NodeSnapshot ns) {
+        double x = ns.position().x();
+        double y = ns.position().y();
+        double w = ns.width();
+        double h = ns.height();
+
+        Node n;
+        switch (ns.type()) { // ← make sure NodeSnapshot.type() exists & is set in NodeSnapshot.of(...)
+            case BASIC       -> n = new com.mygame.model.node.BasicNode(x, y, w, h);
+            case SPY         -> n = new com.mygame.model.node.SpyNode(x, y, w, h);
+            case VPN         -> n = new com.mygame.model.node.VPNNode(x, y, w, h);
+            case SABOTEUR    -> n = new com.mygame.model.node.SaboteurNode(x, y, w, h);
+            case ANTITROJAN  -> n = new com.mygame.model.node.AntiTrojanNode(x, y, w, h);
+            case DISTRIBUTOR -> n = new com.mygame.model.node.DistributorNode(x, y, w, h);
+            case MERGER      -> n = new com.mygame.model.node.MergerNode(x, y, w, h);
+            default          -> n = new com.mygame.model.node.BasicNode(x, y, w, h);
+        }
+        // if your constructors don’t set it, keep this line:
+        n.setNodeType(ns.type());
+        return n;
+    }
+
+
+
     /** Re-initialises runtime lists from an immutable snapshot. */
     public void resetToSnapshot(WorldSnapshot snap) {
         // 1. basic counters
@@ -420,14 +446,9 @@ public class World {
         packets.clear();                  // packets list stays empty; base nodes will re-emit
         nodes.clear();
         for (NodeSnapshot ns : snap.nodes()) {
+            Node n = createNodeFromSnapshot(ns);
             // assume all your level-1/2 nodes are BasicNode; if you have other types
             // switch on ns.kind() to pick the right subclass
-            BasicNode n = new BasicNode(
-                    ns.position().x(),
-                    ns.position().y(),
-                    ns.width(),
-                    ns.height()
-            );
             // if you stored flags in kind or elsewhere, restore them here:
 //            if (Node.Type.BASIC.equals(ns.type()) ) {
 //                n.setBaseLeft(true);
@@ -666,7 +687,7 @@ public class World {
 
             // Example: infected / trojan (if you have such a type) decays health
             if (p.isTrojanPacket()) {                 // add isInfected() to Packet if applicable
-                p.damage(8.0 * dt);
+                p.damage(2.0 * dt);
                 if (!p.isAlive()) {
                     if (eventListener != null) eventListener.onLost(p);
                 }
@@ -679,9 +700,9 @@ public class World {
             if (n instanceof com.mygame.model.node.AntiTrojanNode at) {
                 double R = 75;                          // or read from node
                 for (Packet p : packetsNear(n.getCenter(), R)) {
-                    if (p.isTrojanPacket()) {
-                        p = ((TrojanPacket) p).revert();             // implement on Packet
-                        // short cooldown on node? let the node carry its own cooldown flags if needed
+                    if (p.isTrojanPacket() && p instanceof TrojanPacket tp) {
+                        Packet original = tp.revert();   // copies position/velocity/etc. into original
+                        replacePacketEverywhere(tp, original);
                         AudioManager.get().playFx("heal_ping");
                     }
                 }
@@ -777,6 +798,22 @@ public class World {
         hud.flashBanner(msg);
     }
 
+
+    // in com.mygame.engine.world.World
+    private void replacePacketEverywhere(Packet oldPkt, Packet newPkt) {
+        // swap in world.packets
+        ListIterator<Packet> it = packets.listIterator();
+        while (it.hasNext()) {
+            if (it.next() == oldPkt) {
+                it.set(newPkt);
+                break; // at most once
+            }
+        }
+        // swap on any wire that’s currently carrying it
+        for (Connection c : connections) {
+            c.replaceInTransit(oldPkt, newPkt);
+        }
+    }
 
 
 

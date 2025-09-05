@@ -5,6 +5,16 @@ import com.mygame.engine.physics.Vector2D;
 /** Immutable bundle of all tunable constants. */
 public final class GameConfig {
 
+    public static final double FORWARD_RECOVER_ACCEL       = 40.0; // px/s²  push to restart
+    public static final double FORWARD_RECOVER_MIN_SPEED   = 16.0;  // px/s   target “rolling” speed
+    public static final double FORWARD_RECOVER_LATERAL_DAMP= 0.90; // damp sideways during restart
+
+    // GameConfig.java (near physics tunables)
+    public static final double BACKWARD_BRAKE_PER_S = 12.0; // decay rate for opposite motion
+    public static final double BACKWARD_MAX_SPEED   = 24.0; // cap when moving opposite (px/s)
+    public static final double BACKWARD_LATERAL_DAMP= 0.85; // damp sideways when going opposite
+
+
     public static final int CONFIDENTIAL_SMALL_PACKET_LIFE = 4;
     public static final int CONFIDENTIAL_SMALL_PACKET_COIN_VALUE = 3;
     public static final double CSP_APPROACH_RADIUS = 120.0;     // start slowing within this many px
@@ -53,6 +63,8 @@ public final class GameConfig {
     public static final double BULK_B_LATERAL_TRACK_RATE    = 18;   // 1/s how fast it “locks” to target offset
     public static final double BULK_A_ACCEL_CURVE = 5;
     public static final double BULK_A_VMAX_CURVE = 100;
+    public static final double SPEED_OF_TROJAN_PACKET = SPEED_OF_SQUARE_PACKET_TRIANGLE_PORT / 1.5;
+
     public static double bulkPacketSize = 10;
 
 
@@ -83,7 +95,7 @@ public final class GameConfig {
     public final int portClickRadius     = 8;
 
     /* --- wiring / gameplay --- */
-    public final double maxWireLength    = 2_000;
+    public final double maxWireLength    = 20_000;
     public final double maxDistanceOffTrack = 10;
 
     /* --- simulation --- */
@@ -129,6 +141,8 @@ public final class GameConfig {
     public double cellSize = 50;
     public double limitForCollision = 6;
     public double packetSize = 8;
+    public double antiTrojanNodeWidth = nodeWidth/2;
+    public double antiTrojanNodeHeight = nodeHeight/2;
 
 
     /* --- convenience factory --- */

@@ -51,7 +51,7 @@ public final class DistributorNode extends Node {
 
     @Override
     public Collection<Packet> getQueuedPackets() {
-        return outbox;
+        return queue;
     }
 
     @Override

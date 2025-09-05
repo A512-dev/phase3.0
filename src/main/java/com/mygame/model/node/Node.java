@@ -231,6 +231,9 @@ public abstract class Node implements PacketEventListener {
             queue.clear();
             queue.add(p);
         }
+//        if (packetEventListener != null) {
+//            packetEventListener.onDelivered(p);
+//        }
     }
     public abstract void onLost(Packet p);
 

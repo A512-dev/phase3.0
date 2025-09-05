@@ -90,19 +90,21 @@ public final class MovementSystem implements MovementStrategy {
 
 
 
+
             /* 1 ─ physics:  a → v → x  */
-            pkt.setVelocity( pkt.getVelocity()
-                    .added( pkt.getAcceleration().multiplied(dt) ) );
+            pkt.setVelocity(pkt.getVelocity()
+                    .added(pkt.getAcceleration().multiplied(dt)));
 
             // >>> add transient impulse channel here
-            pkt.setVelocity( pkt.getVelocity().added( pkt.getImpulse() ) );
+            pkt.setVelocity(pkt.getVelocity().added(pkt.getImpulse()));
 
-            pkt.setPosition( pkt.getPosition()
-                    .added( pkt.getVelocity().multiplied(dt) ) );
+            pkt.setPosition(pkt.getPosition()
+                    .added(pkt.getVelocity().multiplied(dt)));
 
 
             // 3) decay the impulse AFTER using it
             pkt.decayImpulse(dt);
+
 
             // update velocity direction
             Projection proj = closestPointOnPath(pkt.getPosition(), path);
@@ -115,17 +117,17 @@ public final class MovementSystem implements MovementStrategy {
 
             /* ── snap to next segment if we’re right at the bend ─────────────── */
             if (seg < pts.length - 2) {
-                for (int i=0; i<50; i++)
+                for (int i = 0; i < 50; i++)
                     System.out.println(seg);
                 if (proj.point.distanceTo(pts[seg + 1]) <= TURN_R) {
-                    for (int i=0; i<50; i++)
+                    for (int i = 0; i < 50; i++)
                         System.out.println("fffffffffffffffffffffffffff");
                     seg++;                                     // pretend we’re already in it
                 }
             }
             if (seg != pow.segmentIndex) {
                 pow.segmentIndex = seg;  // update tracker
-                for (int i=0; i<50; i++)
+                for (int i = 0; i < 50; i++)
                     System.out.println("trtttttt");
 
                 // update velocity to match new segment
@@ -133,7 +135,6 @@ public final class MovementSystem implements MovementStrategy {
                 double speed = pkt.getVelocity().length();
                 pkt.setVelocity(tangent.multiplied(speed));
             }
-
 
 
             // ---- ConfidentialSmallPacket: constant 2D speed unless slowing near busy dest ----
@@ -175,10 +176,10 @@ public final class MovementSystem implements MovementStrategy {
             // ---- ConfidentialLargePacket: maintain spacing by moving fwd/back along the wire ----
             if (pkt instanceof com.mygame.model.packet.confidentialPacket.types.ConfidentialLargePacket) {
 
-                final double D        = com.mygame.core.GameConfig.CLP_TARGET_GAP;
-                final double vmaxFwd  = com.mygame.core.GameConfig.CLP_MAX_SPEED_FWD;
+                final double D = com.mygame.core.GameConfig.CLP_TARGET_GAP;
+                final double vmaxFwd = com.mygame.core.GameConfig.CLP_MAX_SPEED_FWD;
                 final double vmaxBack = com.mygame.core.GameConfig.CLP_MAX_SPEED_BACK;
-                final double rateCLP  = com.mygame.core.GameConfig.CLP_LERP_RATE;
+                final double rateCLP = com.mygame.core.GameConfig.CLP_LERP_RATE;
 
 
                 // Current segment tangent for direction (we already computed seg & pts above)
@@ -186,7 +187,7 @@ public final class MovementSystem implements MovementStrategy {
 
                 // Find nearest neighbors on THIS wire by arc-length s
                 double sSelf = pow.s;
-                double nearestAhead  = Double.POSITIVE_INFINITY; // Δs > 0, smallest
+                double nearestAhead = Double.POSITIVE_INFINITY; // Δs > 0, smallest
                 double nearestBehind = Double.POSITIVE_INFINITY; // |Δs| for Δs < 0, smallest
 
                 for (ListIterator<Connection.PacketOnWire> jt = c.inTransitIterator(); jt.hasNext(); ) {
@@ -206,7 +207,7 @@ public final class MovementSystem implements MovementStrategy {
                 // Compute "pressures" to increase spacing:
                 // - If someone is too close ahead (< D), push backward (negative speed).
                 // - If someone is too close behind (< D), push forward (positive speed).
-                double pAhead  = (nearestAhead  < D) ? (1.0 - (nearestAhead  / D)) : 0.0; // 0..1
+                double pAhead = (nearestAhead < D) ? (1.0 - (nearestAhead / D)) : 0.0; // 0..1
                 double pBehind = (nearestBehind < D) ? (1.0 - (nearestBehind / D)) : 0.0; // 0..1
 
                 // Desired signed speed: positive → forward, negative → backward
@@ -261,7 +262,7 @@ public final class MovementSystem implements MovementStrategy {
             if (pkt instanceof BulkPacketB) {
                 // tangent & normal at the current segment
                 Vector2D tangent = pts[seg + 1].subtracted(pts[seg]).normalized();
-                Vector2D normal  = new Vector2D(-tangent.y(), tangent.x()); // 90° left
+                Vector2D normal = new Vector2D(-tangent.y(), tangent.x()); // 90° left
 
                 // target lateral offset as a function of arc-length s
                 // offset(s) = A * sin(2π * s / λ)
@@ -269,14 +270,14 @@ public final class MovementSystem implements MovementStrategy {
                 double desiredOffset = bulkBAmpl * Math.sin(phase);
 
                 // current lateral offset relative to the path's closest point
-                Vector2D toPos   = pkt.getPosition().subtracted(proj.point);
-                double   curOff  = toPos.dot(normal); // signed distance off the wire
+                Vector2D toPos = pkt.getPosition().subtracted(proj.point);
+                double curOff = toPos.dot(normal); // signed distance off the wire
 
                 // drive the packet’s center toward the desired lateral position
                 // v_lateral ≈ (desired - current) * rate
                 double k = 1.0 - Math.exp(-bulkBTrack * dt);         // [0..1] smoothing
                 double targetLateralSpeed = (desiredOffset - curOff) * (bulkBTrack); // px/s
-                double newLateralSpeed    = (1.0 - k) * (toPos.dot(normal) /*proxy, no speed*/) + k * targetLateralSpeed;
+                double newLateralSpeed = (1.0 - k) * (toPos.dot(normal) /*proxy, no speed*/) + k * targetLateralSpeed;
 
                 // compose final velocity: constant forward + lateral correction
                 Vector2D forwardV = tangent.multiplied(bulkBSpeed);
@@ -294,6 +295,56 @@ public final class MovementSystem implements MovementStrategy {
                 }
             }
 
+            {
+                // local tangent of current segment (from pts[seg] → pts[seg+1])
+                Vector2D tangent = pts[seg + 1].subtracted(pts[seg]).normalized();
+
+                // decompose current velocity
+                Vector2D v = pkt.getVelocity();
+                double vPar = v.dot(tangent);                         // along-wire component
+                Vector2D vPerp = v.subtracted(tangent.multiplied(vPar)); // lateral component
+
+                // CLP may legally move backward for spacing; others shouldn’t “run away” backward
+                boolean allowBackward = (pkt instanceof com.mygame.model.packet.confidentialPacket.types.ConfidentialLargePacket);
+
+                if (!allowBackward && vPar < 0) {
+                    // strong exponential damping of backward component + cap its magnitude
+                    double k = Math.exp(-GameConfig.BACKWARD_BRAKE_PER_S * dt); // 0..1 per frame
+                    double cappedBack = -Math.min(GameConfig.BACKWARD_MAX_SPEED, Math.abs(vPar));
+                    double newVPar = Math.max(cappedBack, vPar * k);            // still ≤0, shrinking
+
+                    // also quell sideways drift while wrong-way
+                    vPerp = vPerp.multiplied(GameConfig.BACKWARD_LATERAL_DAMP);
+
+                    // rebuild the velocity
+                    pkt.setVelocity(tangent.multiplied(newVPar).added(vPerp));
+                }
+            }
+// ── Auto-resume along the wire when no longer meaningfully backward ──
+            {
+                // use the same local tangent we computed for the brake
+                Vector2D tangent = pts[seg + 1].subtracted(pts[seg]).normalized();
+
+                // read current velocity & its decomposition
+                Vector2D v = pkt.getVelocity();
+                double   vPar  = v.dot(tangent);                         // along-wire component
+                Vector2D vPerp = v.subtracted(tangent.multiplied(vPar)); // lateral part
+
+                // If we are not significantly backward anymore (vPar >= ~0), but not rolling forward either,
+                // give a small forward push and gently damp sideways motion so it locks back to the path.
+                if (vPar >= -1.0 && vPar < GameConfig.FORWARD_RECOVER_MIN_SPEED) {
+                    double cap = baseForwardCap(pkt, bulkFlatSpeed, bulkBSpeed); // per-type sensible cap
+
+                    // accelerate forward along tangent
+                    double newVPar = Math.min(cap, vPar + GameConfig.FORWARD_RECOVER_ACCEL * dt);
+
+                    // quell sideways drift while re-acquiring forward motion
+                    vPerp = vPerp.multiplied(GameConfig.FORWARD_RECOVER_LATERAL_DAMP);
+
+                    // rebuild velocity
+                    pkt.setVelocity(tangent.multiplied(newVPar).added(vPerp));
+                }
+            }
 
 
 
@@ -392,5 +443,19 @@ public final class MovementSystem implements MovementStrategy {
         }
         return pts.length - 2; // final segment
     }
+    /** Cap the “recover” forward speed per packet type. */
+    private double baseForwardCap(Packet pkt, double bulkFlatSpeed, double bulkBSpeed) {
+        if (pkt instanceof com.mygame.model.packet.confidentialPacket.types.ConfidentialSmallPacket)
+            return GameConfig.SPEED_OF_CONFIDENTIAL_SMALL_PACKET;
+        if (pkt instanceof com.mygame.model.packet.confidentialPacket.types.ConfidentialLargePacket)
+            return GameConfig.SPEED_OF_CONFIDENTIAL_Large_PACKET;
+        if (pkt instanceof com.mygame.model.packet.bulkPacket.types.BulkPacketA)
+            return bulkFlatSpeed;
+        if (pkt instanceof com.mygame.model.packet.bulkPacket.types.BulkPacketB)
+            return bulkBSpeed;
+        // fallback for generic packets
+        return GameConfig.defaultConfig().packetMaxSpeed;
+    }
+
 
 }

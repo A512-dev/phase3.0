@@ -13,7 +13,7 @@ public record WorldSnapshot(
         HudReadOnly              hud,          // ← **READ-ONLY HUD COPY**
         CoinService coinService,
         boolean                  gameOver,
-        boolean                  viewOnlyMode
+        boolean viewOnlyMode
 ) {
 
 

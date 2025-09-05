@@ -540,7 +540,7 @@ public final class GamePanel extends JPanel
     /* ────────────────────────────── live state ────────────────────────────── */
     private final World          world;
     private final WorldController ctrl;
-    private final WorldView      renderer      = new WorldView();
+    private final WorldView renderer = new WorldView();
     private final GameLoop       loop;
     // At the top of your UI class (e.g. GamePanel or EditorCanvas)
     private DraftConnection draftConnection = null;
@@ -693,7 +693,7 @@ public final class GamePanel extends JPanel
                     System.out.println("node0 packets="+ Arrays.toString(world.getNodes().get(0).getQueuedPackets().toArray()));
                     System.out.println("node1 packets="+ Arrays.toString(world.getNodes().get(1).getQueuedPackets().toArray()));
                     System.out.println("node2 packets="+ Arrays.toString(world.getNodes().get(2).getQueuedPackets().toArray()));
-                    System.out.println("node3 packets="+ Arrays.toString(world.getNodes().get(3).getQueuedPackets().toArray()));
+
                     TimeController tc = world.getTimeController();
                     if (tc.isWaitingToStart())      tc.startFromFreeze();
                     else                            tc.toggleFrozen();
@@ -898,13 +898,6 @@ public final class GamePanel extends JPanel
                 world.getTimeController().startFromFreeze();
             else
                 world.getTimeController().toggleFrozen();
-
-
-            System.out.println("Nodes="+world.getNodes().toString());
-            System.out.println("node0 packets="+ Arrays.toString(world.getNodes().get(0).getQueuedPackets().toArray()));
-            System.out.println("node1 packets="+ Arrays.toString(world.getNodes().get(1).getQueuedPackets().toArray()));
-            System.out.println("node2 packets="+ Arrays.toString(world.getNodes().get(2).getQueuedPackets().toArray()));
-            System.out.println("node3 packets="+ Arrays.toString(world.getNodes().get(3).getQueuedPackets().toArray()));
         } else {
             world.setViewOnlyMode(false);
             world.getTimeController().stopJump();

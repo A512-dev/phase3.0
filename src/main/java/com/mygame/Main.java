@@ -32,7 +32,7 @@ public class Main {
         frame.setContentPane(mainMenu);
         frame.setVisible(true);
         /* 🔊 start BG music on first play */
-        AudioManager.get().loopMusic("pacman background music");
+        //AudioManager.get().loopMusic("pacman background music");
     }
 
     /** Called when the user clicks "Play" */
@@ -41,7 +41,7 @@ public class Main {
     private int currentLevelInt = 1;
     private String currentLevelId;
 
-    private void startGame() {
+    private void startGame_BEFORE() {
         Level level = new Level(currentLevelInt);
         System.out.println("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL"+level.id());
         currentLevelId = level.id();
@@ -122,6 +122,15 @@ public class Main {
         // Start logic & render threads at 60 UPS/FPS in GamePanel
 
     }
+    private void startGame() {
+        LevelSelectPanel picker = new LevelSelectPanel(
+                () -> { frame.setContentPane(mainMenu); frame.revalidate(); },
+                this::launchLevel
+        );
+        frame.setContentPane(picker);
+        frame.revalidate();
+    }
+
     private void restoreConnections(String levelID) {
         List<ConnectionRecord> connections = null;
         connections = GameState.loadConnections(levelID);
@@ -178,6 +187,47 @@ public class Main {
         frame.setContentPane(settingsMenu);
         frame.validate();
     }
+
+
+    private void launchLevel(int chosenLevel) {
+        this.currentLevelInt = chosenLevel;
+
+        Level level = new Level(currentLevelInt);
+        currentLevelId = level.id();
+
+        gamePanel = new GamePanel(this::restartLevel, level);
+
+        // restore old connections if you want:
+        if (GameState.isLevelPassed(level.id()))
+            restoreConnections(level.id());
+
+        gamePanel.setOnGameOver(() -> {
+            SwingUtilities.invokeLater(() -> {
+                double successRatio = (double) gamePanel.getWorld().getHudState().getSuccessful() /
+                        gamePanel.getWorld().getHudState().getTotalPackets();
+
+                if (successRatio >= 0.5) {
+                    GameState.saveConnections(
+                            level.id(),
+                            gamePanel.getWorld().getConnections(),
+                            gamePanel.getWorld().getNodes()
+                    );
+                }
+
+                frame.setContentPane(new GameOverPanel(
+                        gamePanel.getWorld().getHudState().getTotalPackets(),
+                        gamePanel.getWorld().getHudState().getLostPackets(),
+                        this::restartLevel
+                ));
+                frame.revalidate();
+            });
+        });
+
+        frame.setContentPane(gamePanel);
+        frame.validate();
+    }
+
+
 
 
 

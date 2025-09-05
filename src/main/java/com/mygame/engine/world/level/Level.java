@@ -76,7 +76,7 @@ public final class Level{
         finalizeWorld(world); // freezes initial snapshot inside World
     }
 
-    private void buildLevel1(World world, GameConfig cfg) {
+    private void buildLevel1Org(World world, GameConfig cfg) {
         BasicNode baseLeft = new BasicNode(100, 250, cfg.nodeWidth, cfg.nodeHeight);
         baseLeft.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
                 baseLeft.getHeight() / 3));
@@ -142,8 +142,91 @@ public final class Level{
         }
         world.getCoinService().addCoins(10);
     }
+    private void buildLevel1(World world, GameConfig cfg) {
+        // Emitter
+        BasicNode emitter = addBasicNode(world, 80, 260, cfg);
+        emitter.addInputPort(PortType.SQUARE,  pointMaker(-cfg.portSize/2, emitter.getHeight()/2));
+        emitter.addOutputPort(PortType.SQUARE,   pointMaker(emitter.getWidth() - cfg.portSize/2, emitter.getHeight()/3));
+        emitter.addOutputPort(PortType.TRIANGLE, pointMaker(emitter.getWidth() - cfg.portSize/2, 2*emitter.getHeight()/3));
+        emitter.setBaseLeft(true);
 
+        // Mid for squares
+        BasicNode mid = addBasicNode(world, 300, 200, cfg);
+        mid.addInputPort(PortType.SQUARE,  pointMaker(-cfg.portSize/2, mid.getHeight()/2));
+        mid.addOutputPort(PortType.SQUARE, pointMaker(mid.getWidth() - cfg.portSize/2, mid.getHeight()/2));
+
+        // Sink accepts both
+        BasicNode sink = addBasicNode(world, 620, 260, cfg);
+        sink.addInputPort(PortType.SQUARE,   pointMaker(-cfg.portSize/2, sink.getHeight()/3));
+        sink.addInputPort(PortType.TRIANGLE, pointMaker(-cfg.portSize/2, 2*sink.getHeight()/3));
+        sink.addOutputPort(PortType.SQUARE, pointMaker(mid.getWidth() - cfg.portSize/2, sink.getHeight()/2));
+
+
+
+        // Spawns
+        enqueueRandomMessenger(emitter, 10, world);
+
+        // HUD listener
+        world.getNodes().forEach(n -> n.setPacketEventListener(world.getHudState()));
+        world.getCoinService().addCoins(5); // no upfront bonus here
+    }
+    // Level.java — REPLACE the whole buildLevel2(...) with this
     private void buildLevel2(World world, GameConfig cfg) {
+        // --- Emitter (left) ---
+        BasicNode emitter = addBasicNode(world, 80, 260, cfg);
+        emitter.addInputPort(PortType.SQUARE,   pointMaker(-cfg.portSize/2, emitter.getHeight()/2));
+        emitter.addOutputPort(PortType.SQUARE,   pointMaker(emitter.getWidth() - cfg.portSize/2, emitter.getHeight()/4));
+        emitter.addOutputPort(PortType.TRIANGLE, pointMaker(emitter.getWidth() - cfg.portSize/2, 2*emitter.getHeight()/4));
+        emitter.addOutputPort(PortType.SQUARE,   pointMaker(emitter.getWidth() - cfg.portSize/2, 3*emitter.getHeight()/4));
+        emitter.setBaseLeft(true);
+
+        // --- Secure route: VPN -> Spy -> Sink ---
+        VPNNode vpn = new VPNNode(260, 120, cfg.nodeWidth, cfg.nodeHeight);
+        // inputs (left side)
+        vpn.addInputPort(PortType.SQUARE,   pointMaker(-cfg.portSize/2, vpn.getHeight()/3));
+        //vpn.addInputPort(PortType.TRIANGLE, pointMaker(-cfg.portSize/2, 2*vpn.getHeight()/3));
+        // outputs (right side)
+        //vpn.addOutputPort(PortType.SQUARE,   pointMaker(vpn.getWidth() - cfg.portSize/2, vpn.getHeight()/3));
+        vpn.addOutputPort(PortType.TRIANGLE, pointMaker(vpn.getWidth() - cfg.portSize/2, 2*vpn.getHeight()/3));
+        world.getNodes().add(vpn);
+
+        SpyNode spy = new SpyNode(420, 220, cfg.nodeWidth, cfg.nodeHeight);
+        // inputs (left)
+        spy.addInputPort(PortType.SQUARE,   pointMaker(-cfg.portSize/2, spy.getHeight()/3));
+        spy.addInputPort(PortType.TRIANGLE, pointMaker(-cfg.portSize/2, 2*spy.getHeight()/3));
+        // outputs (right)
+        spy.addOutputPort(PortType.SQUARE,   pointMaker(spy.getWidth() - cfg.portSize/2, spy.getHeight()/3));
+        spy.addOutputPort(PortType.TRIANGLE, pointMaker(spy.getWidth() - cfg.portSize/2, 2*spy.getHeight()/3));
+        world.getNodes().add(spy);
+
+        BasicNode sink = addBasicNode(world, 640, 120, cfg);
+        sink.addInputPort(PortType.SQUARE,   pointMaker(-cfg.portSize/2, sink.getHeight()/3));
+        sink.addOutputPort(PortType.SQUARE,   pointMaker(sink.getWidth() - cfg.portSize/2, sink.getHeight()/3));
+
+        // --- “Wrong” path: straight into a spy (to showcase hazards/teleport) ---
+        SpyNode trapSpy = new SpyNode(260, 340, cfg.nodeWidth, cfg.nodeHeight);
+        // inputs
+        trapSpy.addInputPort(PortType.SQUARE,   pointMaker(-cfg.portSize/2, trapSpy.getHeight()/3));
+        trapSpy.addInputPort(PortType.TRIANGLE, pointMaker(-cfg.portSize/2, 2*trapSpy.getHeight()/3));
+        // outputs
+        trapSpy.addOutputPort(PortType.SQUARE,   pointMaker(trapSpy.getWidth() - cfg.portSize/2, trapSpy.getHeight()/3));
+        trapSpy.addOutputPort(PortType.TRIANGLE, pointMaker(trapSpy.getWidth() - cfg.portSize/2, 2*trapSpy.getHeight()/3));
+        world.getNodes().add(trapSpy);
+
+//        BasicNode trapSink = addBasicNode(world, 640, 340, cfg);
+//        trapSink.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, trapSink.getHeight()/2));
+
+
+        // --- Spawns ---
+        enqueueRandomMessenger(emitter, 12, world);
+
+        // --- HUD + seed coins ---
+        world.getNodes().forEach(n -> n.setPacketEventListener(world.getHudState()));
+        world.getCoinService().addCoins(5);
+    }
+
+
+    private void buildLevel2Org(World world, GameConfig cfg) {
         BasicNode baseLeft = new BasicNode(50, 200, cfg.nodeWidth, cfg.nodeHeight);
         baseLeft.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
                 baseLeft.getHeight() / 3));
@@ -187,9 +270,100 @@ public final class Level{
         }
         world.getNodes().forEach(n -> n.setPacketEventListener(world.getHudState()));
     }
+    /* ────────────────────── Level 3: Trojan + AntiTrojan (with VPN+Spy carryover) ────────────────────── */
+    private void buildLevel3(World world, GameConfig cfg) {
+        // avoid stale teleporter state when restarting/advancing
+        SpyNode.resetRegistry();
+
+        // ── 1) Emitter: two SQUARE outputs (top = protected route, bottom = unprotected route)
+        BasicNode emitter = addBasicNode(world, 30, 220, cfg);
+        emitter.addInputPort(PortType.SQUARE, pointMaker( - cfg.portSize/2, emitter.getHeight()/3));           //
+        emitter.addInputPort(PortType.SQUARE, pointMaker( - cfg.portSize/2, 2*emitter.getHeight()/3));           //
+        emitter.addOutputPort(PortType.SQUARE, pointMaker(emitter.getWidth() - cfg.portSize/2, emitter.getHeight()/3));           // top
+        emitter.addOutputPort(PortType.SQUARE, pointMaker(emitter.getWidth() - cfg.portSize/2, 2*emitter.getHeight()/3));         // bottom
+        emitter.setBaseLeft(true);
+
+        // ── 2) VPN + Spy pair on the top branch (keeps Level 2 mechanic alive)
+        VPNNode vpnA = new VPNNode(140, 30, cfg.nodeWidth, cfg.nodeHeight);
+        vpnA.addInputPort(PortType.SQUARE,  pointMaker(-cfg.portSize/2,  vpnA.getHeight()/2));
+        vpnA.addOutputPort(PortType.SQUARE, pointMaker(vpnA.getWidth() - cfg.portSize/2, vpnA.getHeight()/2));
+        world.getNodes().add(vpnA);
+
+        SpyNode spyA = new SpyNode(280, 30, cfg.nodeWidth, cfg.nodeHeight);
+        spyA.addInputPort(PortType.SQUARE,  pointMaker(-cfg.portSize/2,  spyA.getHeight()/2));
+        spyA.addOutputPort(PortType.SQUARE, pointMaker(spyA.getWidth() - cfg.portSize/2, spyA.getHeight()/2));
+        world.getNodes().add(spyA);
+
+        // ── 3) Teleport target spy on the right side
+        SpyNode spyB = new SpyNode(180, 200, cfg.nodeWidth, cfg.nodeHeight);
+        spyB.addInputPort(PortType.SQUARE,  pointMaker(-cfg.portSize/2,  spyB.getHeight()/2));
+        spyB.addOutputPort(PortType.SQUARE, pointMaker(spyB.getWidth() - cfg.portSize/2, spyB.getHeight()/2));
+        world.getNodes().add(spyB);
+        SpyNode.linkSpies(spyA, spyB); // A<->B teleport cluster
+
+        // ── 4) Trojanization path on the bottom branch (main focus of lvl 3)
+        // Unprotected hits a lone spy (teleport), then goes through Saboteur → AntiTrojan aura → sink.
+        SpyNode spyTrap = new SpyNode(170, 380, cfg.nodeWidth, cfg.nodeHeight);
+        spyTrap.addInputPort(PortType.SQUARE,  pointMaker(-cfg.portSize/2,  spyTrap.getHeight()/2));
+        spyTrap.addOutputPort(PortType.SQUARE, pointMaker(spyTrap.getWidth() - cfg.portSize/2, spyTrap.getHeight()/2));
+        world.getNodes().add(spyTrap);
+
+        SaboteurNode sab = new SaboteurNode(400, 180, cfg.nodeWidth, cfg.nodeHeight);
+        sab.addInputPort(PortType.SQUARE,  pointMaker(-cfg.portSize/2,  sab.getHeight()/2));
+        sab.addOutputPort(PortType.SQUARE, pointMaker(sab.getWidth() - cfg.portSize/2, sab.getHeight()/3));
+        sab.addOutputPort(PortType.TRIANGLE, pointMaker(sab.getWidth() - cfg.portSize/2, 2*sab.getHeight()/3));
+        sab.setTrojanConversionProbability(0.55); // tune as you like
+        world.getNodes().add(sab);
+
+        // AntiTrojan is an aura node (no ports needed); place it on the path Saboteur→sink
+        AntiTrojanNode anti = new AntiTrojanNode(520, 130, cfg.antiTrojanNodeWidth, cfg.antiTrojanNodeHeight);
+        world.getNodes().add(anti);
+
+        // ── 5) Sinks
+        BasicNode sinkOK = addBasicNode(world, 680, 70, cfg); // top/protected & teleported via spyB can end here
+        sinkOK.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, sinkOK.getHeight()/3));
+        sinkOK.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, 2*sinkOK.getHeight()/3)); // extra lane if needed
+        sinkOK.addOutputPort(PortType.SQUARE, pointMaker(sinkOK.getWidth() - cfg.portSize/2, sinkOK.getHeight()/2));           //
+
+
+        BasicNode sinkAlt = addBasicNode(world, 680, 350, cfg); // alternative for local spyTrap fallback
+        sinkAlt.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, sinkAlt.getHeight()/2));
+        sinkAlt.addOutputPort(PortType.SQUARE, pointMaker(sinkAlt.getWidth() - cfg.portSize/2, sinkAlt.getHeight()/2));           //
+
+        // ── 6) Wiring
+        // Top (protected) route: Emitter → VPN → SpyA → Sink
+        world.connectASimpleWire(emitter, 0, vpnA, 0);
+        world.connectASimpleWire(vpnA,    0, spyA, 0);
+        world.connectASimpleWire(spyA,    0, sinkOK, 0);
+
+        // Teleport exit path (so spyTrap can “pop out” here and continue): SpyB → Saboteur
+        world.connectASimpleWire(spyB, 0, sab, 0);
+
+        // Saboteur → through AntiTrojan’s aura (pass nearby) → sinkOK
+        world.connectASimpleWire(sab, 0, sinkOK, 1);
+
+        // Bottom (unprotected) route: Emitter → spyTrap
+        // spyTrap will TRY teleport (to spyB); if no exit is ready it uses its local output to sinkAlt.
+        world.connectASimpleWire(emitter, 1, spyTrap, 0);
+        world.connectASimpleWire(spyTrap, 0, sinkAlt, 0); // local fallback if teleport isn’t available this tick
+
+        // ── 7) Spawns (simple stream; protected on top due to VPN; bottom stays unprotected)
+        for (int i = 0; i < 12; i++) {
+            Packet p = world.getPacketFactory().messengerSmall(centerOf(emitter)); // SQUARE
+            p.setMobile(false);
+            emitter.enqueuePacket(p);
+            world.getHudState().incrementTotalPackets();
+        }
+
+        // ── 8) HUD + coins + small teaching banner
+        world.getNodes().forEach(n -> n.setPacketEventListener(world.getHudState()));
+        world.getCoinService().addCoins(10);
+        world.postAt(6.0, () -> world.flashBanner("Protected packets pass spies locally; unprotected may teleport, then get trojanized & cleaned."));
+    }
+
 
     /* ───────────────────────── Level 3: “Introduce Spy hazard” ────────────────── */
-    private void buildLevel3(World world, GameConfig cfg) {
+    private void buildLevel3Org(World world, GameConfig cfg) {
         BasicNode baseL = addBasicNode(world, 80, 250, cfg);
         baseL.addOutputPort(PortType.SQUARE,   pointMaker(baseL.getWidth() - cfg.portSize/2, baseL.getHeight()/3));
         baseL.addOutputPort(PortType.TRIANGLE, pointMaker(baseL.getWidth() - cfg.portSize/2, 2*baseL.getHeight()/3));
@@ -222,7 +396,7 @@ public final class Level{
         // world.getNodes().add(sab);
 
         // AntiTrojan “aura” that cleans trojans in radius
-        AntiTrojanNode anti = new AntiTrojanNode(460, 300, cfg.nodeWidth, cfg.nodeHeight);
+        AntiTrojanNode anti = new AntiTrojanNode(460, 300, cfg.antiTrojanNodeWidth, cfg.antiTrojanNodeHeight);
         world.getNodes().add(anti);
 
         BasicNode sink = addBasicNode(world, 650, 300, cfg);

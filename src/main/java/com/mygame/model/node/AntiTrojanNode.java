@@ -48,7 +48,7 @@ public final class AntiTrojanNode extends Node {
 
     @Override
     public Collection<Packet> getQueuedPackets() {
-        return null;
+        return queue;
     }
 
     @Override
@@ -58,7 +58,7 @@ public final class AntiTrojanNode extends Node {
 
     @Override
     public Node copy() {
-        return new SpyNode(this.getX(), this.getY(), this.getWidth(), this.getHeight());
+        return new AntiTrojanNode(this.getX(), this.getY(), this.getWidth(), this.getHeight());
     }
 
 
