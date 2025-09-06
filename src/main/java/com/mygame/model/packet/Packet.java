@@ -68,6 +68,15 @@ public abstract class Packet implements PhysicsBody {
     protected        float   opacity = 1f;
     protected        boolean alive  = true;
     protected int life = 2;
+
+    public void setFromPort(Port fromPort) {
+        this.fromPort = fromPort;
+    }
+
+    public void setToPort(Port toPort) {
+        this.toPort = toPort;
+    }
+
     // In com.mygame.model.packet.Packet
     protected Port fromPort;
     protected Port toPort;
@@ -131,8 +140,12 @@ public abstract class Packet implements PhysicsBody {
     public abstract Shape shape();
 
     public void setAlive(boolean aliveStatus) {
-        this.alive = false;
-        life = 0;
+        if (aliveStatus)
+            this.alive = true;
+        else {
+            this.alive = false;
+            life = 0;
+        }
     }
 
     public void setOpacity(float v) {

@@ -20,6 +20,7 @@ import com.mygame.model.packet.TrojanPacket;
 import com.mygame.model.packet.confidentialPacket.ConfidentialPacket;
 import com.mygame.model.packet.confidentialPacket.types.ConfidentialLargePacket;
 import com.mygame.model.packet.confidentialPacket.types.ConfidentialSmallPacket;
+import com.mygame.model.packet.messengerPacket.types.InfinityPacket;
 import com.mygame.model.packet.messengerPacket.types.SquarePacket;
 import com.mygame.model.packet.messengerPacket.types.TrianglePacket;
 import com.mygame.model.powerup.ActivePowerUp;
@@ -698,11 +699,18 @@ public class World {
         for (Node n : nodes) {
             // AntiTrojanNode: cleans infected packets in a small radius
             if (n instanceof com.mygame.model.node.AntiTrojanNode at) {
-                double R = 75;                          // or read from node
+                double R = GameConfig.distanceOfAntiTrojanNodeToWork;                          // or read from node
                 for (Packet p : packetsNear(n.getCenter(), R)) {
                     if (p.isTrojanPacket() && p instanceof TrojanPacket tp) {
+                        AudioManager.get().playFx("heal_ping");
                         Packet original = tp.revert();   // copies position/velocity/etc. into original
                         replacePacketEverywhere(tp, original);
+                        System.out.println("reverted alive=" + original.isAlive() +
+                                " mobile=" + original.isMobile() +
+                                " onWire=" + (original.getWire()!=null));
+
+
+
                         AudioManager.get().playFx("heal_ping");
                     }
                 }
@@ -788,9 +796,16 @@ public class World {
             p.addTag("CONF_B");
             return p;
         }
-        public Packet messengerSmall(Vector2D pos){
-            return new SquarePacket(pos, 20, 8);
+        public Packet messengerSquare(Vector2D pos){
+            return new SquarePacket(pos, GameConfig.squareLife, GameConfig.squareSize);
         }
+        public Packet messengerTriangle(Vector2D pos){
+            return new TrianglePacket(pos, GameConfig.triangleLife, GameConfig.triangleSize);
+        }
+        public Packet messengerInfinity(Vector2D pos){
+            return new InfinityPacket(pos, GameConfig.infinityLife, GameConfig.infinitySize);
+        }
+
         // add trojan(), bulkA(), etc. as you implement them
     }
     // World.java
@@ -802,13 +817,10 @@ public class World {
     // in com.mygame.engine.world.World
     private void replacePacketEverywhere(Packet oldPkt, Packet newPkt) {
         // swap in world.packets
-        ListIterator<Packet> it = packets.listIterator();
-        while (it.hasNext()) {
-            if (it.next() == oldPkt) {
-                it.set(newPkt);
-                break; // at most once
-            }
-        }
+
+        int i = packets.indexOf(oldPkt);
+        packets.set(i, newPkt);
+        System.out.println("new Packet:::::::::::::::::::::::"+newPkt.isAlive());
         // swap on any wire that’s currently carrying it
         for (Connection c : connections) {
             c.replaceInTransit(oldPkt, newPkt);

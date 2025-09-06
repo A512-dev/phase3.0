@@ -78,6 +78,8 @@ public final class VPNNode extends Node {
     @Override public void onCollision(Packet a, Packet b) { /* no-op */ }
 
     @Override public void update(double dt, List<Packet> worldPackets) {
+        for (Port port : getPorts()) if (port.isEmitting()) port.tickCooldown(dt);
+        if (queue.isEmpty()) return;
         emitQueued(worldPackets);
     }
 
