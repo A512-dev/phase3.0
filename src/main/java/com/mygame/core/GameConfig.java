@@ -35,7 +35,7 @@ public final class GameConfig {
     public static final double RADIUS_OF_WAVE = 40.0;
     public static final int CONFIDENTIAL_LARGE_PACKET_SIZE = 10;
 
-    public static final double SPEED_OF_SQUARE_PACKET_SQUARE_PORT = 20.0;
+    public static final double SPEED_OF_SQUARE_PACKET_SQUARE_PORT = 80.0;
     public static final double SPEED_OF_SQUARE_PACKET_TRIANGLE_PORT = 40.0;
 
     public static final int CONFIDENTIAL_SMALL_PACKET_SIZE = 10;
@@ -85,7 +85,7 @@ public final class GameConfig {
     public static double trojanPacketSize = 10;
     public static double SPEED_OF_CONFIDENTIAL_Large_PACKET = 15;
     public static double timeCooldownPort = 1;
-
+    public static double distanceOfAntiTrojanNodeToWork = 60;
 
 
     /* --- node geometry --- */

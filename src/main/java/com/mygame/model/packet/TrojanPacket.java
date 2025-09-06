@@ -19,9 +19,16 @@ public class TrojanPacket extends Packet{
         original.setPosition(this.getPosition().copy());
         original.setVelocity(this.getVelocity().copy());
         original.setAcceleration(this.getAcceleration().copy());
-        original.setMobile(this.isMobile());
-        original.setAlive(this.isAlive());
+        original.setMobile(true);
+        original.life = this.life;
         original.setOpacity(this.getOpacity());
+        try {
+            original.attachToWire(this.getWire());                // if Packet has getWire()/setWire()
+            original.setFromPort(this.getFromPort());      // if available
+            original.setToPort(this.getToPort());          // if available
+        }
+        catch (Exception ignored) { /* no-op if not present */ }
+
         original.cleanInfection();
         return original;
     }

@@ -348,8 +348,14 @@ public final class Level{
         world.connectASimpleWire(spyTrap, 0, sinkAlt, 0); // local fallback if teleport isn’t available this tick
 
         // ── 7) Spawns (simple stream; protected on top due to VPN; bottom stays unprotected)
-        for (int i = 0; i < 12; i++) {
-            Packet p = world.getPacketFactory().messengerSmall(centerOf(emitter)); // SQUARE
+        for (int i = 0; i < 50; i++) {
+            Packet p = null;
+            if (i%3==0)
+                p = world.getPacketFactory().messengerSquare(centerOf(emitter)); // SQUARE
+            else if ((i%3)==1)
+                p = world.getPacketFactory().messengerTriangle(centerOf(emitter)); // Triange
+            else
+                p = world.getPacketFactory().messengerInfinity(centerOf(emitter)); // Infinity
             p.setMobile(false);
             emitter.enqueuePacket(p);
             world.getHudState().incrementTotalPackets();
