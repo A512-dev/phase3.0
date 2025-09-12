@@ -50,7 +50,7 @@ public class GameState {
     }
 
     public static void clearConnections(int level) {
-        String file = (level == 1) ? CONNECTIONS_FILE1 : CONNECTIONS_FILE2;
+        String file = getPathOfLevel("level"+level);
         try {
             new File(file).delete();
         } catch (Exception e) {

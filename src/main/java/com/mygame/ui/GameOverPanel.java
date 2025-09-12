@@ -1,5 +1,6 @@
 package com.mygame.ui;
 
+import com.mygame.core.GameConfig;
 import com.mygame.core.GameState;
 
 
@@ -7,7 +8,12 @@ import javax.swing.*;
 import java.awt.*;
 
 public class GameOverPanel extends JPanel {
+    private final Dimension canvas = GameConfig.level1Size;
+
     public GameOverPanel(int total, int lost, Runnable onRestart) {
+
+        setPreferredSize(canvas); setMinimumSize(canvas); setMaximumSize(canvas);
+
         setLayout(new BorderLayout());
 
 
@@ -53,4 +59,6 @@ public class GameOverPanel extends JPanel {
         add(restart, BorderLayout.SOUTH);
         this.setBackground(Color.cyan);
     }
+
+    @Override public Dimension getPreferredSize() { return canvas; }
 }

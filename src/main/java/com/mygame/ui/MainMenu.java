@@ -1,6 +1,8 @@
 // MainMenu.java
 package com.mygame.ui;
 
+import com.mygame.core.GameConfig;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -19,5 +21,10 @@ public class MainMenu extends JPanel {
 
         gbc.gridy = 0; add(playBtn, gbc);
         gbc.gridy = 1; add(settingsBtn, gbc);
+
+
+        setPreferredSize(GameConfig.level1Size);
+        setMinimumSize(GameConfig.level1Size);
+
     }
 }

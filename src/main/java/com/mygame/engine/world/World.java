@@ -2,6 +2,7 @@ package com.mygame.engine.world;
 
 import com.mygame.audio.AudioManager;
 import com.mygame.core.GameConfig;
+import com.mygame.engine.debug.LossDebug;
 import com.mygame.engine.physics.CollisionSystem;
 import com.mygame.engine.physics.ImpactWaveSystem;
 import com.mygame.engine.world.level.Level;
@@ -197,56 +198,94 @@ public class World {
         List<Packet> stillAlive = new ArrayList<>();
         for (Packet p : packets) {
             if (p.hasArrived()) {
-                eventListener.onDelivered(p);
+                //eventListener.onDelivered(p);
                 AudioManager.get().playFx("Picked_Coin_Echo");
+                // Find which node’s INPUT port this packet reached
+                Node arrivedAt = null;
+                Port arrivedPort = null;
                 for (Node node : nodes) {
                     for (Port in : node.getInputs()) {
                         if (in.getCenter().distanceTo(p.getPathEnd()) < 1e-6) {
                             if (node == nodes.get(0)) {
                                 if (eventListener != null) eventListener.onDelivered(p);
-                            } else {
+                                hud.incrementSuccessful();   // whichever counter you use
+                                p.setAlive(false);           // consumed, not lost
+                                continue;
+                            }
+                            else {
                                 p.setMobile(false);
                                 node.enqueuePacket(p);
+                                System.out.println();
                             }
-                            if (eventListener instanceof HUDState) {
-                                int coinValue = p.getCoinValue();
-                                HUDState h = (HUDState) eventListener;
-                                h.setCoins(h.getCoins() + coinValue);
-                            }
+
+                            arrivedAt = node;
+                            arrivedPort = in;
+
+                            //break;
                         }
                     }
+                    //if (arrivedAt != null) break;
                 }
-                continue;
+//
+//                if (arrivedAt != null) {
+//
+//                    // ① Coins for ANY node arrival
+//                    int coinValue = p.getCoinValue();
+//                    coinService.addCoins(coinValue);           // <- use the single source of truth
+//                    AudioManager.get().playFx("Picked_Coin_Echo");
+//
+//                    // ② Successful “reached” ONLY if it returned to the emitter/BaseLeft
+//                    boolean isEmitter = (arrivedAt == nodes.get(0));         // fallback: first node is base-left
+//
+//                    if (isEmitter) {
+//                        if (eventListener != null) eventListener.onDelivered(p); // “reached” + stats
+//                        // consumed at the emitter: DO NOT enqueue back into the node
+//                        // (optional) despawn or mark not mobile
+//                        p.setAlive(false);
+//                    }
+//                    else {
+//                        // entering a regular node: stop traveling & enqueue
+//                        p.setMobile(false);
+//                        arrivedAt.onDelivered(p, arrivedPort);
+//                        // FALLBACK: if node didn't enqueue the same packet, enqueue it now
+//                        if (!arrivedAt.getQueuedPackets().contains(p) && p.isAlive()) {
+//                            arrivedAt.enqueuePacket(p);
+//                        }
+//                    }
+//                }
+
+                continue;   // handled this packet’s arrival
             }
 
             if (!p.isAlive()) {
-                System.out.println("⚰ Packet died: not alive");
-                eventListener.onLost(p);
+                // Try to use a reason someone set earlier (e.g., node overflow), otherwise default
+                String reason = LossDebug.consume(p).orElse("HEALTH_ZERO");
+                reportLoss(p, reason);
             }
             else if (p.isOffTrackLine(cfg.maxDistanceOffTrack, p.getPosition())) {
-                System.out.println("⚠️ Packet died: off track");
-                System.out.println("   pos=" + p.getPosition());
-                System.out.println("   maxDist=" + cfg.maxDistanceOffTrack);
-                eventListener.onLost(p);
+                p.setAlive(false);
+                LossDebug.mark(p, "OFF_TRACK > " + cfg.maxDistanceOffTrack + "px");
+                reportLoss(p, "OFF_TRACK");
             }
             else {
                 stillAlive.add(p);
             }
         }
+
         packets.clear();
         packets.addAll(stillAlive);
 
-        if (hud.getPacketLossRatio() > 0.5 && !viewOnlyMode) {
+        if (hud.getPacketLossRatio() > 2 && !viewOnlyMode) {
             setGameOver(true);
             AudioManager.get().playFx("losegamemusic");
         }
 
-        System.out.println("nodes update");
+        //System.out.println("nodes update");
         for (Node node : nodes) {
             //System.out.println(Arrays.toString(node.getQueuedPackets().toArray()));
             node.update(dt, packets);
         }
-        System.out.println("WorldPackets="+ packets.size());
+        //System.out.println("WorldPackets="+ packets.size());
 
 
         boolean allSettled = packets.isEmpty()
@@ -669,26 +708,16 @@ public class World {
             if (!p.isAlive()) continue;
 
             // TODO: 8/12/2025 : packet rules:
-            // Example: SquarePacket slowly self-heals and gives small coins on long trips
+
             // TODO: 8/12/2025 squareRules
-            if (p instanceof com.mygame.model.packet.messengerPacket.types.SquarePacket sq) {
-                // tiny passive heal
-                //sq.heal(2.0 * dt);                    // implement heal(double) on Packet if needed
-                // cap health inside Packet
-            }
+
 
             // Example: TrianglePacket keeps higher forward speed on wires
             // TODO: 8/12/2025 triangleRules
-            if (p instanceof com.mygame.model.packet.messengerPacket.types.TrianglePacket) {
-//                // small forward bias: a gentle push along current velocity
-//                Vector2D fwd = p.getVelocity().normalized();
-//                if (!Double.isNaN(fwd.x()) && !Double.isNaN(fwd.y()))
-//                    p.addImpulse(fwd.multiplied(10.0 * dt));   // feels “snappier” on bends
-            }
 
-            // Example: infected / trojan (if you have such a type) decays health
-            if (p.isTrojanPacket()) {                 // add isInfected() to Packet if applicable
-                p.damage(2.0 * dt);
+            // I think: trojan decays health
+            if (p.isTrojanPacket()) {
+                p.damage(0.1 * dt);
                 if (!p.isAlive()) {
                     if (eventListener != null) eventListener.onLost(p);
                 }
@@ -826,6 +855,17 @@ public class World {
             c.replaceInTransit(oldPkt, newPkt);
         }
     }
+
+
+    private void reportLoss(Packet p, String reason) {
+        // keep whatever state changes you already do
+        if (eventListener != null) {
+            // if you later add a reasoned onLost(p, reason), call that here
+            eventListener.onLost(p);
+        }
+        System.out.println(LossDebug.formatLine(reason, p, hud.getGameTime()));
+    }
+
 
 
 

@@ -5,6 +5,7 @@ import java.awt.*;
 import java.util.EnumMap;
 import java.util.Map;
 
+import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.model.packet.Packet;
 import com.mygame.snapshot.PacketSnapshot;
@@ -138,6 +139,14 @@ public class PacketView implements View<PacketSnapshot> {
                 g.fillPolygon(xs, ys, 3);
                 g.setColor(Color.BLACK); g.drawPolygon(xs, ys, 3);
             }
+//            case CONFIDENTIAL_S -> {
+//                int half = (int) (GameConfig.triangleSize/2);
+//                g.setColor(new Color(255,0,0,(int)(s.opacity()*255)));
+//                int[] xs = {(int)pos.x(), (int)(pos.x()-half), (int)(pos.x()+half)};
+//                int[] ys = {y, y+sz, y+sz};
+//                g.fillPolygon(xs, ys, 3);
+//                g.setColor(Color.BLACK); g.drawPolygon(xs, ys, 3);
+//            }
             default -> {
                 g.setColor(new Color(80,80,80,(int)(s.opacity()*255)));
                 g.fillOval(x, y, sz, sz);

@@ -18,6 +18,7 @@ public record PacketSnapshot(
         boolean protectedByVPN,
         boolean trojan,
         boolean bit
+
 ) {
     public static PacketSnapshot of(Packet p) {
         Vector2D pathStart = (p.getFromPort() != null) ? p.getFromPort().getCenter() : p.getPosition();

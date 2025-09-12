@@ -1,6 +1,7 @@
 package com.mygame.model.node;
 
 import com.mygame.core.GameConfig;
+import com.mygame.engine.debug.LossDebug;
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.engine.world.World;
 import com.mygame.model.PacketEventListener;
@@ -98,8 +99,10 @@ public abstract class Node implements PacketEventListener {
 
     /* ── queue helpers ────────────────────────────────────── */
     public void enqueuePacket(Packet p){
-        if (queue.size()>=5)
+        if (queue.size()>=5) {
+            LossDebug.mark(p, "QUEUE_OVERFLOW at " + getClass().getSimpleName());
             p.setAlive(false);
+        }
         else
             queue.addLast(p);
     }
@@ -210,9 +213,9 @@ public abstract class Node implements PacketEventListener {
 
             for (Port out : outputs) {
                 if (out.getConnectedPort() != null && out.canEmit()) {
+                    p.setMobile(true);
 
                     out.getWire().transmit(p);
-                    p.setMobile(true);
                     worldPackets.add(p);
                     queue.remove(p);
                     out.resetCooldown();
@@ -243,13 +246,14 @@ public abstract class Node implements PacketEventListener {
     public void update(double dt, List<Packet> worldPackets) {
         for (Port port: getPorts()) {
             if (port.isEmitting()) {
-                port.tickCooldown(dt);
-                System.out.println("port CoolDown subtracted dt");
+                port.tickCooldown(0.6*dt);
+                //System.out.println("port CoolDown subtracted dt");
             }
         }
         if (!queue.isEmpty()) {
             emitQueued(worldPackets);
-            System.out.println("Node Emitted Queued");
+
+            //System.out.println("Node Emitted Queued");
         }
     }
 

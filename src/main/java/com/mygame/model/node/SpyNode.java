@@ -1,6 +1,7 @@
 // com/mygame/model/node/SpyNode.java
 package com.mygame.model.node;
 
+import com.mygame.engine.debug.LossDebug;
 import com.mygame.model.Connection;
 import com.mygame.model.PacketEventListener;
 import com.mygame.model.Port;
@@ -95,14 +96,14 @@ public final class SpyNode extends Node {
     public void onDelivered(Packet p, Port at) {
         // Confidential ⇒ removed
         if (p.isConfidentialPacket()) {
+            LossDebug.mark(p, "SPY_BLOCKED");
             p.setAlive(false);
-            lose(p); // notify HUD as "lost"
             return;
         }
         // Protected / Normal ⇒ queue; actual emission decided in update()
-        if (queue.size()>=1) {
+        if (queue.size()>=4) {
+            LossDebug.mark(p, "SPY_BLOCKED_Queue_Full");
             p.setAlive(false);
-            lose(p); // notify HUD as "lost"
             return;
         }
         enqueuePacket(p);

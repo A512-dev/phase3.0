@@ -32,4 +32,9 @@ public final class ConfidentialSmallPacket extends ConfidentialPacket {
     @Override public double   getFriction()    { return friction; }
     @Override public void     setPosition(Vector2D p) { pos.set(p); }
     @Override public void     setVelocity(Vector2D v) { vel.set(v); }
+
+    @Override
+    public Shape shape() {
+        return Shape.CONFIDENTIAL_S;
+    }
 }

@@ -1,36 +1,51 @@
 package com.mygame;
 
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
 import com.mygame.audio.AudioManager;
 import com.mygame.core.GameState;
+import com.mygame.core.save.SaveManager;
+import com.mygame.core.save.SaveRecord;
 import com.mygame.engine.world.level.Level;
 
 import com.mygame.model.Port;
 import com.mygame.model.node.Node;
 import com.mygame.model.Connection;
 import com.mygame.engine.world.World;
+import com.mygame.snapshot.WorldSnapshot;
 import com.mygame.ui.*;
 import com.mygame.core.ConnectionRecord;
 
 import java.util.List;
 
 public class Main {
+
+
+    // Main.java
+    private SaveManager saveManager;   // <- add this
+
+
+
+
     private final JFrame frame;
     private final MainMenu mainMenu;
     private GamePanel gamePanel;
 
     public Main() {
-        frame = new JFrame("Blueprint Hell – Phase 1");
+        frame = new JFrame("Blueprint Hell – Phase 2");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(800, 600);
+        //frame.setSize(800, 600);
         frame.setLocationRelativeTo(null);
 
         // Show main menu on startup
         mainMenu = new MainMenu(this::startGame, this::openSettings);
         frame.setContentPane(mainMenu);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+        frame.revalidate();
+        frame.repaint();
+
         /* 🔊 start BG music on first play */
         //AudioManager.get().loopMusic("pacman background music");
     }
@@ -43,9 +58,9 @@ public class Main {
 
     private void startGame_BEFORE() {
         Level level = new Level(currentLevelInt);
-        System.out.println("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL"+level.id());
+        //System.out.println("LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL"+level.id());
         currentLevelId = level.id();
-        gamePanel = new GamePanel(this::restartLevel, level);
+        gamePanel = new GamePanel(this::restartLevel, this::exitToMenu,level, saveManager);
 
         // restore old connections if you want:
         if (GameState.isLevelPassed(level.id()))
@@ -64,7 +79,10 @@ public class Main {
                         gamePanel.getWorld().getHudState().getLostPackets(),
                         this::restartLevel  // define this to reset
                 ));
+
                 frame.revalidate();
+                frame.pack();
+                frame.setLocationRelativeTo(null);
             });
         });
 
@@ -147,15 +165,23 @@ public class Main {
         }
     }
     private void restartLevel() {
-        gamePanel.stop();
+        if (gamePanel != null) gamePanel.stop();
+        if (saveManager != null) { try { saveManager.close(); } catch (Exception ignore) {} }
+
+
         frame.getContentPane().removeAll();
         assert Integer.parseInt(currentLevelId.substring(5)) == currentLevelInt;
         Level level = new Level(currentLevelInt);
 
-        gamePanel = new GamePanel(this::restartLevel, level);
-        if (GameState.isLevelPassed(currentLevelId)) {
-            restoreConnections(currentLevelId);
-        }
+        // new SaveManager for this run/level id
+        saveManager = new SaveManager(level.id());
+
+
+
+        gamePanel = new GamePanel(this::restartLevel, this::exitToMenu,  level, saveManager);
+//        if (GameState.isLevelPassed(currentLevelId)) {
+//            restoreConnections(currentLevelId);
+//        }
         gamePanel.setOnGameOver(() -> {
             double successRatio = (double)gamePanel.getWorld().getHudState().getSuccessful() /
                     gamePanel.getWorld().getHudState().getTotalPackets();
@@ -174,6 +200,14 @@ public class Main {
                 frame.revalidate();
             });
         });
+
+
+
+        // Start autosave cadence
+        saveManager.start();
+
+
+
         frame.setContentPane(gamePanel);
         frame.revalidate();
         /* 🔊 start BG music on first play */
@@ -194,12 +228,57 @@ public class Main {
 
         Level level = new Level(currentLevelInt);
         currentLevelId = level.id();
+        // init SaveManager (but don't start pushing frames yet)
+        saveManager = new SaveManager(level.id());
 
-        gamePanel = new GamePanel(this::restartLevel, level);
+        boolean resume = false;
+        if (saveManager.hasAutosave()) {
+            int choice = javax.swing.JOptionPane.showConfirmDialog(
+                    frame,
+                    "A previous run was interrupted. Continue from autosave?",
+                    "Resume?",
+                    JOptionPane.YES_NO_OPTION
+            );
+            resume = (choice == JOptionPane.YES_OPTION);
+        }
 
-        // restore old connections if you want:
-        if (GameState.isLevelPassed(level.id()))
-            restoreConnections(level.id());
+        gamePanel = new GamePanel(this::restartLevel, this::exitToMenu, level, saveManager);
+
+
+
+        // if resume, load and apply snapshot BEFORE showing the panel
+        if (resume) {
+            try {
+                SaveRecord rec = saveManager.load();     // verifies HMAC + version
+                if (rec != null && level.id().equals(rec.levelId())) {
+                    gamePanel.getWorld().resetToSnapshot(rec.snapshot());
+                    // Short preview (per spec): show a little motion, then continue
+                    gamePanel.jumpTo(Math.min(3.0, gamePanel.getWorld().getHudState().getGameTime()));
+                    gamePanel.togglePauseIfNeeded();
+                } else {
+                    saveManager.clearAutosave(); // mismatched level file
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                // corrupted or mismatched → start fresh and delete file
+                saveManager.clearAutosave();
+            }
+        } else {
+            // player declined → delete autosave per spec
+            saveManager.clearAutosave();
+        }
+
+        // now that the panel is ready, start autosave cadence
+        saveManager.start();
+
+
+
+
+
+//
+//        // restore old connections if you want:
+//        if (GameState.isLevelPassed(level.id()))
+//            restoreConnections(level.id());
 
         gamePanel.setOnGameOver(() -> {
             SwingUtilities.invokeLater(() -> {
@@ -219,12 +298,39 @@ public class Main {
                         gamePanel.getWorld().getHudState().getLostPackets(),
                         this::restartLevel
                 ));
+                frame.pack();                        // <-- picks up GamePanel.getPreferredSize()
+                frame.setLocationRelativeTo(null);   // optional: keep it centered
                 frame.revalidate();
+                frame.repaint();
             });
         });
 
         frame.setContentPane(gamePanel);
-        frame.validate();
+        frame.pack();                        // <-- picks up GamePanel.getPreferredSize()
+        frame.setLocationRelativeTo(null);   // optional: keep it centered
+        frame.revalidate();
+        frame.repaint();
+    }
+
+    // put inside Main
+    private void exitToMenu() {
+        if (gamePanel != null) {
+            gamePanel.stop();
+        }
+        if (saveManager != null) {
+            try {
+                // Intentioned exit: delete autosave so resume prompt doesn’t appear
+                saveManager.clearAutosave();
+                saveManager.close();  // stop background scheduler
+            } catch (Exception ignore) {}
+            saveManager = null;
+        }
+        frame.getContentPane().removeAll();
+        frame.setContentPane(mainMenu);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.revalidate();
+        frame.repaint();
     }
 
 

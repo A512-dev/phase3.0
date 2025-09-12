@@ -77,6 +77,15 @@ public abstract class Packet implements PhysicsBody {
         this.toPort = toPort;
     }
 
+
+    public void resetMotionForNodeHop() {
+        setAcceleration(new Vector2D());
+        setVelocity(new Vector2D());
+        clearImpulse();
+        attachToWire(null); // or setWire(null) if that’s your API
+    }
+
+
     // In com.mygame.model.packet.Packet
     protected Port fromPort;
     protected Port toPort;
@@ -180,7 +189,12 @@ public abstract class Packet implements PhysicsBody {
     /* ------------------------------------------------ arrive / track-line */
 
     public boolean hasArrived() {
-        return toPort != null && pos.distanceTo(toPort.getCenter()) < radius;
+        boolean arrived = toPort != null && pos.distanceTo(toPort.getCenter()) < radius;
+        if (arrived) {
+            System.out.println("toport = "+ toPort);
+            System.out.println("pos.distanceTo(toPort.getCenter()) < radius===" + (pos.distanceTo(toPort.getCenter()) < radius));
+        }
+        return arrived;
     }
     public Vector2D getPathEnd() { return pos; }         // used by HUD
     public boolean isOffTrackLine(double max, Vector2D positon) {

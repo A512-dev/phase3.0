@@ -46,6 +46,13 @@ public final class DistributorNode extends Node {
 
     @Override
     public void update(double dt, List<Packet> worldPackets) {
+        for (Port port: getPorts()) {
+            if (port.isEmitting()) {
+                port.tickCooldown(0.6*dt);
+                //System.out.println("port CoolDown subtracted dt");
+            }
+        }
+
         emitQueued(worldPackets);
     }
 

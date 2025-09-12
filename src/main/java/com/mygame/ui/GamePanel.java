@@ -509,6 +509,8 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.mygame.core.GameConfig;
+import com.mygame.core.save.SaveManager;
+import com.mygame.core.save.SaveRecord;
 import com.mygame.engine.world.WorldController;
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.engine.world.level.Level;
@@ -553,6 +555,10 @@ public final class GamePanel extends JPanel
     private final ShopPanel  shopPanel;
     private final JButton    resumeButton  = new JButton("Resume");
     private final JButton    restartButton = new JButton("Restart");
+    private final JButton exitButton = new JButton("Exit to Menu");
+    private final Runnable onExitToMenu;
+
+
     private final JSlider    timeSlider    = new JSlider(0, 30, 0);
 
     private       boolean    shopOpen      = false;
@@ -560,12 +566,35 @@ public final class GamePanel extends JPanel
     private       Runnable   onGameOverCb;
 
 
+    private final SaveManager saveManager;
+    private final Level level;
+
+
+
+    private Dimension canvasSize;
 
     /* ────────────────────────────── ctor ───────────────────────────────────── */
-    public GamePanel(Runnable restartLevel, Level level) {
-        setPreferredSize(new Dimension(800, 600));
+    public GamePanel(Runnable restartLevel, Runnable exitToMenu, Level level, SaveManager saveManager) {
+        this.saveManager = saveManager;
+        this.saveManager.start();
+
+
+        this.level = level;
+
+
+
+        this.onExitToMenu = exitToMenu;
+
+
+        this.canvasSize = preferredCanvas(level);
+        setPreferredSize(canvasSize);
         setDoubleBuffered(true);
         setFocusable(true);
+        setPreferredSize(canvasSize);
+        setMinimumSize(canvasSize);
+        setMaximumSize(canvasSize);
+
+
         world = new World(level);
         ctrl  = new WorldController(world);
 
@@ -592,6 +621,14 @@ public final class GamePanel extends JPanel
         add(shopPanel);
 
         /* 4️⃣  Pause & restart buttons (initially invisible) */
+        exitButton.setVisible(false);
+        exitButton.setFocusable(false);
+        exitButton.addActionListener(e -> {
+            // optional: stop loop so it doesn’t tick under the menu
+            loop.stop();
+            onExitToMenu.run();
+        });
+        add(exitButton);
         resumeButton.setVisible(false);   resumeButton.setFocusable(false);
         restartButton.setVisible(false);  restartButton.setFocusable(false);
         resumeButton.addActionListener(e -> togglePauseIfNeeded());
@@ -610,16 +647,56 @@ public final class GamePanel extends JPanel
         world.setPacketEventListener(world.getHudState());
         world.setOnReachedTarget(this::goToTime);
 
+        packWindowToPreferredSize();
         /* 8️⃣  Focus */
         SwingUtilities.invokeLater(this::requestFocusInWindow);
+    }
+
+    // make LAFs/layout managers respect your size
+    @Override public Dimension getPreferredSize() { return canvasSize; }
+
+    // helper
+    private void packWindowToPreferredSize() {
+        SwingUtilities.invokeLater(() -> {
+            Window w = SwingUtilities.getWindowAncestor(this);
+            if (w instanceof Frame f) { f.pack(); f.setLocationRelativeTo(null); }
+            else if (w != null)       { w.pack(); }
+        });
+    }
+
+
+    private Dimension preferredCanvas(Level level) {
+        return switch (level.getLevelInt()) {
+            case 2 -> GameConfig.level2Size;
+            case 3 -> GameConfig.level3Size;
+            case 4 -> GameConfig.level4Size;
+            case 5 -> GameConfig.level5Size;
+            default -> GameConfig.level1Size;
+        };
+
     }
 
     /* ───────────────────────── snapshot hand-off ───────────────────────────── */
     /** called from GameLoop thread once per frame */
     @Override public void accept(WorldSnapshot s) {
         this.snap = s;
+        // hand the latest immutable snapshot to SaveManager;
+        // SaveManager will decide (via its internal tick flag) whether to actually write now.
+        if (saveManager != null) {
+            SaveRecord rec = SaveRecord.from(level.id(), s); // implement a static factory
+            saveManager.pushFrame(rec);
+        }
         SwingUtilities.invokeLater(this::repaint);
     }
+
+
+
+    public SaveManager getSaveManager() { return saveManager; }
+
+
+
+
+
 
     /* ───────────────────────── paint ──────────────────────────────────────── */
     @Override protected void paintComponent(Graphics g) {
@@ -667,14 +744,18 @@ public final class GamePanel extends JPanel
     }
 
     /* ───────────────────────── public helpers ─────────────────────────────── */
-    public void setOnGameOver(Runnable r)    { onGameOverCb = r; }
-    public void stop()                       { loop.stop();     }
-    public void jumpTo(double s)             { world.getTimeController().jumpTo(s); }
+    public void setOnGameOver(Runnable r) { onGameOverCb = r; }
+    public void stop() {
+        if (loop != null) loop.stop();
+        if (saveManager != null) saveManager.stop();
+    }
+    public void jumpTo(double s) { world.getTimeController().jumpTo(s); }
     public void togglePauseIfNeeded() {
         if (world.getTimeController().isPaused()) {
             world.getTimeController().togglePause();
             resumeButton.setVisible(false);
             restartButton.setVisible(false);
+            exitButton.setVisible(false);
             repaint();
         }
     }
@@ -878,11 +959,12 @@ public final class GamePanel extends JPanel
         int y = getHeight()/2 + 10;
         resumeButton.setBounds(x, y, bw, bh);
         resumeButton.setVisible(true);
-
-        int bx = getWidth()/2 - bw/2;
         int by = y + bh + 10;
-        restartButton.setBounds(bx, by, bw, bh);
+        restartButton.setBounds(x, by, bw, bh);
         restartButton.setVisible(true);
+
+        exitButton.setBounds(  x, by + bh + 10, bw, bh);
+        exitButton.setVisible(true);
     }
 
     /* ───────────────────────── go-to-time (timeline review) ───────────────── */

@@ -12,7 +12,7 @@ public class MessengerPacket extends Packet {
 
     @Override
     public int getCoinValue() {
-        return 0;
+        return 1;
     }
 
 

@@ -30,7 +30,7 @@ public final class BitPacket extends Packet {
 
     /** بیت‌ها معمولاً ارزشی ندارند یا خیلی کم؛ 0 نگه می‌داریم. */
     @Override
-    public int getCoinValue() { return 0; }
+    public int getCoinValue() { return 1; }
 
     /** برای نمایش شِمای Messenger/Infinity استفاده می‌شود. */
     @Override

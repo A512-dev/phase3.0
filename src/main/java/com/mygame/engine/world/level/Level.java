@@ -4,14 +4,19 @@ package com.mygame.engine.world.level;
 import com.mygame.core.GameConfig;
 import com.mygame.engine.physics.Vector2D;
 import com.mygame.engine.world.World;
+import com.mygame.model.Connection;
 import com.mygame.model.Port;
 import com.mygame.model.Port.PortType;
 import com.mygame.model.node.*;
 import com.mygame.model.packet.Packet;
+import com.mygame.model.packet.bulkPacket.types.BulkPacketA;
+import com.mygame.model.packet.bulkPacket.types.BulkPacketB;
+import com.mygame.model.packet.confidentialPacket.types.ConfidentialSmallPacket;
 import com.mygame.model.packet.messengerPacket.types.InfinityPacket;
 import com.mygame.model.packet.messengerPacket.types.SquarePacket;
 import com.mygame.model.packet.messengerPacket.types.TrianglePacket;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Supplier;
 
@@ -190,7 +195,7 @@ public final class Level{
         vpn.addOutputPort(PortType.TRIANGLE, pointMaker(vpn.getWidth() - cfg.portSize/2, 2*vpn.getHeight()/3));
         world.getNodes().add(vpn);
 
-        SpyNode spy = new SpyNode(420, 220, cfg.nodeWidth, cfg.nodeHeight);
+        SpyNode spy = new SpyNode(420, 220, cfg.spyNodeWidth, cfg.spyNodeHeight);
         // inputs (left)
         spy.addInputPort(PortType.SQUARE,   pointMaker(-cfg.portSize/2, spy.getHeight()/3));
         spy.addInputPort(PortType.TRIANGLE, pointMaker(-cfg.portSize/2, 2*spy.getHeight()/3));
@@ -204,7 +209,7 @@ public final class Level{
         sink.addOutputPort(PortType.SQUARE,   pointMaker(sink.getWidth() - cfg.portSize/2, sink.getHeight()/3));
 
         // --- “Wrong” path: straight into a spy (to showcase hazards/teleport) ---
-        SpyNode trapSpy = new SpyNode(260, 340, cfg.nodeWidth, cfg.nodeHeight);
+        SpyNode trapSpy = new SpyNode(260, 340, cfg.spyNodeWidth, cfg.spyNodeHeight);
         // inputs
         trapSpy.addInputPort(PortType.SQUARE,   pointMaker(-cfg.portSize/2, trapSpy.getHeight()/3));
         trapSpy.addInputPort(PortType.TRIANGLE, pointMaker(-cfg.portSize/2, 2*trapSpy.getHeight()/3));
@@ -289,13 +294,13 @@ public final class Level{
         vpnA.addOutputPort(PortType.SQUARE, pointMaker(vpnA.getWidth() - cfg.portSize/2, vpnA.getHeight()/2));
         world.getNodes().add(vpnA);
 
-        SpyNode spyA = new SpyNode(280, 30, cfg.nodeWidth, cfg.nodeHeight);
+        SpyNode spyA = new SpyNode(280, 30, cfg.spyNodeWidth, cfg.spyNodeHeight);
         spyA.addInputPort(PortType.SQUARE,  pointMaker(-cfg.portSize/2,  spyA.getHeight()/2));
         spyA.addOutputPort(PortType.SQUARE, pointMaker(spyA.getWidth() - cfg.portSize/2, spyA.getHeight()/2));
         world.getNodes().add(spyA);
 
         // ── 3) Teleport target spy on the right side
-        SpyNode spyB = new SpyNode(180, 200, cfg.nodeWidth, cfg.nodeHeight);
+        SpyNode spyB = new SpyNode(180, 200, cfg.spyNodeWidth, cfg.spyNodeHeight);
         spyB.addInputPort(PortType.SQUARE,  pointMaker(-cfg.portSize/2,  spyB.getHeight()/2));
         spyB.addOutputPort(PortType.SQUARE, pointMaker(spyB.getWidth() - cfg.portSize/2, spyB.getHeight()/2));
         world.getNodes().add(spyB);
@@ -303,7 +308,7 @@ public final class Level{
 
         // ── 4) Trojanization path on the bottom branch (main focus of lvl 3)
         // Unprotected hits a lone spy (teleport), then goes through Saboteur → AntiTrojan aura → sink.
-        SpyNode spyTrap = new SpyNode(170, 380, cfg.nodeWidth, cfg.nodeHeight);
+        SpyNode spyTrap = new SpyNode(170, 380, cfg.spyNodeWidth, cfg.spyNodeHeight);
         spyTrap.addInputPort(PortType.SQUARE,  pointMaker(-cfg.portSize/2,  spyTrap.getHeight()/2));
         spyTrap.addOutputPort(PortType.SQUARE, pointMaker(spyTrap.getWidth() - cfg.portSize/2, spyTrap.getHeight()/2));
         world.getNodes().add(spyTrap);
@@ -377,7 +382,7 @@ public final class Level{
 
         // Spy in the middle (blocks unprotected) — per spec, protected should pass.
         // If SpyNode isn’t implemented yet, comment these two lines:
-        SpyNode spy = new SpyNode(360, 260, cfg.nodeWidth, cfg.nodeHeight);
+        SpyNode spy = new SpyNode(360, 260, cfg.spyNodeWidth, cfg.spyNodeHeight);
         world.getNodes().add(spy);
 
         // A VPN near the spy so players learn to protect first
@@ -390,9 +395,146 @@ public final class Level{
         enqueueRandomMessenger(baseL, (int) (cfg.numberOfPacketsLevel2 + 3), world);
         world.getNodes().forEach(n -> n.setPacketEventListener(world.getHudState()));
     }
+    private void buildLevel4(World world, GameConfig cfg) {
+        /* ───────── Nodes ───────── */
+        // BaseLeft: emitter + collector (success counted when packets enter its inputs)
+        BasicNode baseLeft = new BasicNode(30, 260, cfg.nodeWidth, cfg.nodeHeight);
+        baseLeft.setBaseLeft(true);
+        baseLeft.addOutputPort(Port.PortType.SQUARE,   new Vector2D(baseLeft.getWidth()-cfg.portSize/2, baseLeft.getHeight()/3));
+        baseLeft.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(baseLeft.getWidth()-cfg.portSize/2, 2*baseLeft.getHeight()/3));
+        baseLeft.addInputPort(Port.PortType.SQUARE,    new Vector2D(-cfg.portSize/2, baseLeft.getHeight()/3));
+        baseLeft.addInputPort(Port.PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, 2*baseLeft.getHeight()/3));
+
+        // Distributor: separates Square / Triangle lanes
+        DistributorNode distro = new DistributorNode(200, 100, cfg.nodeWidth, cfg.nodeHeight);
+        distro.addInputPort(Port.PortType.SQUARE,   new Vector2D(-cfg.portSize/2, distro.getHeight()/3));
+        distro.addInputPort(Port.PortType.TRIANGLE, new Vector2D(-cfg.portSize/2, 2*distro.getHeight()/3));
+        distro.addOutputPort(Port.PortType.SQUARE,   new Vector2D(distro.getWidth()-cfg.portSize/2, distro.getHeight()/3));       // top
+        distro.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(distro.getWidth()-cfg.portSize/2, 2*distro.getHeight()/3));     // bottom
+
+        // Top corridor: Saboteur → (curvy wire) → VPN → Merger (SQUARE + BULK)
+        SaboteurNode sab = new SaboteurNode(410, 160, cfg.nodeWidth, cfg.nodeHeight);
+        sab.addInputPort(Port.PortType.SQUARE,  new Vector2D(-cfg.portSize/2, sab.getHeight()/3));
+        sab.addInputPort(PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, 2*sab.getHeight()/3));
+
+        sab.addOutputPort(PortType.SQUARE, new Vector2D(sab.getWidth()-cfg.portSize/2, sab.getHeight()/3));
+        sab.addOutputPort(PortType.TRIANGLE, new Vector2D(sab.getWidth()-cfg.portSize/2, 2*sab.getHeight()/3));
+
+        sab.setTrojanConversionProbability(0.12);  // light infection pressure
+        sab.setInjectUnitNoiseIfNone(false);       // keep drift minimal
+
+        VPNNode vpn = new VPNNode(560, 160, cfg.nodeWidth, cfg.nodeHeight);
+        vpn.addInputPort(Port.PortType.SQUARE,  new Vector2D(-cfg.portSize/2, vpn.getHeight()/3));
+        vpn.addInputPort(PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, 2*vpn.getHeight()/3));
+
+        vpn.addOutputPort(Port.PortType.SQUARE, new Vector2D(vpn.getWidth()-cfg.portSize/2, vpn.getHeight()/2));
+
+
+
+        MergerNode mergeS = new MergerNode(710, 220, cfg.nodeWidth, cfg.nodeHeight);
+        mergeS.addInputPort(Port.PortType.SQUARE, new Vector2D(-cfg.portSize/2, mergeS.getHeight()/3));
+        mergeS.addInputPort(PortType.TRIANGLE, new Vector2D(-cfg.portSize/2, 2*mergeS.getHeight()/3)); // room for a 2nd feed if player rewires
+        mergeS.addOutputPort(Port.PortType.SQUARE, new Vector2D(mergeS.getWidth()-cfg.portSize/2, mergeS.getHeight()/2));
+
+        // Gentle safety near the merge
+        AntiTrojanNode anti = new AntiTrojanNode(660, 260, cfg.antiTrojanNodeWidth, cfg.antiTrojanNodeHeight);
+        //anti.addInputPort(Port.PortType.SQUARE, new Vector2D(-cfg.portSize/2, anti.getHeight()/2)); // aura cleans; port isn’t used
+
+        // Bottom corridor: SpyA → (teleport) → SpyB → BaseRight (TRIANGLE)
+        SpyNode spyA = new SpyNode(340, 30, cfg.spyNodeWidth, cfg.spyNodeHeight);
+        spyA.addInputPort(Port.PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, spyA.getHeight()/2));
+        //spyA.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(spyA.getWidth()-cfg.portSize/2, spyA.getHeight()/2));
+        SpyNode spyB = new SpyNode(680, 380, cfg.spyNodeWidth, cfg.spyNodeHeight);
+        //spyB.addInputPort(Port.PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, spyB.getHeight()/2));
+        spyB.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(spyB.getWidth()-cfg.portSize/2, spyB.getHeight()/2));
+        SpyNode.linkSpies(spyA, spyB);
+
+        // BaseRight: sink/relay back to BaseLeft
+        BasicNode baseRight = new BasicNode(820, 340, cfg.nodeWidth, cfg.nodeHeight);
+        baseRight.addInputPort(Port.PortType.SQUARE,   new Vector2D(-cfg.portSize/2, baseRight.getHeight()/3));
+        baseRight.addInputPort(Port.PortType.TRIANGLE, new Vector2D(-cfg.portSize/2, 2*baseRight.getHeight()/3));
+        baseRight.addOutputPort(Port.PortType.SQUARE,   new Vector2D(baseRight.getWidth()-cfg.portSize/2, baseRight.getHeight()/3));
+        baseRight.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(baseRight.getWidth()-cfg.portSize/2, 2*baseRight.getHeight()/3));
+
+        // Add nodes
+        world.addNode(baseLeft);
+        world.addNode(distro);
+        world.addNode(sab);
+        world.addNode(vpn);
+        world.addNode(mergeS);
+        world.addNode(anti);
+        world.addNode(spyA);
+        world.addNode(spyB);
+        world.addNode(baseRight);
+
+        world.getNodes().forEach(n -> n.setPacketEventListener(world.getHudState()));
+        world.setPacketEventListener(world.getHudState());
+
+        /* ───────── Wires ───────── */
+        // BaseLeft → Distributor
+        world.addConnection(new Connection(baseLeft.getOutputs().get(0), distro.getInputs().get(0), new ArrayList<>()));
+        world.addConnection(new Connection(baseLeft.getOutputs().get(1), distro.getInputs().get(1), new ArrayList<>()));
+
+//        // Distro (SQUARE) → Saboteur
+//        world.addConnection(new Connection(distro.getOutputs().get(0), sab.getInputs().get(0), new ArrayList<>()));
+
+        // Saboteur → VPN (add a “chicane” to exercise Bulk A)
+        world.addConnection(new Connection(
+                sab.getOutputs().get(0),
+                vpn.getInputs().get(0),
+                new ArrayList<>()));
+
+        // VPN → Merger(S)
+        world.addConnection(new Connection(vpn.getOutputs().get(0), mergeS.getInputs().get(0), new ArrayList<>()));
+
+//        // Distro (TRIANGLE) → SpyA → SpyB → BaseRight
+//        world.addConnection(new Connection(distro.getOutputs().get(1), spyA.getInputs().get(0), new ArrayList<>()));
+        world.addConnection(new Connection(spyB.getOutputs().get(0), baseRight.getInputs().get(1), new ArrayList<>()));
+
+        // Merger(S) → BaseRight (SQUARE)
+        world.addConnection(new Connection(mergeS.getOutputs().get(0), baseRight.getInputs().get(0), new ArrayList<>()));
+
+//        // Return loop: BaseRight → BaseLeft (both shapes)
+//        world.addConnection(new Connection(baseRight.getOutputs().get(0), baseLeft.getInputs().get(0), new ArrayList<>()));
+//        world.addConnection(new Connection(baseRight.getOutputs().get(1), baseLeft.getInputs().get(1), new ArrayList<>()));
+
+        /* ───────── Coins / UX ───────── */
+        world.getCoinService().addCoins(12); // a little budget for optional routing tweaks
+
+        /* ───────── Spawns (Square/Triangle + Bulk A/B + a trickle of Confidential) ───────── */
+        final Vector2D emit = baseLeft.getCenter();
+
+        // 48 total, 0.5s cadence; every 6th is Bulk (A/B alternating), every 8th is ConfidentialSmall
+        int N = 15;
+        for (int i = 0; i < N; i++) {
+            final int k = i;
+            world.postAt(0.5 * i, () -> {
+                Packet p;
+                if (k % 6 == 5) {
+                     //Bulk stream routed via the SQUARE lane
+                    if (((k / 6) % 2) == 0)
+                        p = new BulkPacketA(emit.copy(), cfg.bulkPacketPayLoad, cfg.bulkPacketLife);   // accelerates at bends
+                    else
+                        p = new BulkPacketB(emit.copy(), cfg.bulkPacketPayLoad, cfg.bulkPacketLife);   // lateral wave (MovementSystem clamps)
+                } else if (k % 8 == 0) {
+                    p = new ConfidentialSmallPacket(emit.copy());               // justifies the VPN in top lane
+                }
+                else if ((k & 1) == 0) {
+                    p = new SquarePacket(emit.copy(), GameConfig.squareLife, GameConfig.squareSize);
+                }
+                else {
+                    p = new TrianglePacket(emit.copy(), GameConfig.triangleLife, GameConfig.triangleSize);
+                }
+                p.setMobile(false);
+                baseLeft.enqueuePacket(p);
+                world.getHudState().incrementTotalPackets();
+            });
+        }
+
+    }
 
     /* ───────────────────────── Level 4: “Trojan + AntiTrojan radius” ──────────── */
-    private void buildLevel4(World world, GameConfig cfg) {
+    private void buildLevel4Org(World world, GameConfig cfg) {
         BasicNode baseL = addBasicNode(world, 80, 300, cfg);
         baseL.addOutputPort(PortType.SQUARE, pointMaker(baseL.getWidth() - cfg.portSize/2, baseL.getHeight()/2));
         baseL.setBaseLeft(true);

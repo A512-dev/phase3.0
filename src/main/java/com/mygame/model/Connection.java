@@ -182,6 +182,7 @@
 
         /** Called by Node when it pushes a packet onto this wire. */
         public void transmit(Packet p) {
+            p.resetMotionForNodeHop();   // <-- guarantees a clean launch
             List<Vector2D> path = getPath();
             if (path.size() < 2) return;
 
@@ -215,6 +216,18 @@
             }
             else if (p instanceof InfinityPacket) {
                 // TODO: 8/13/2025 infinity packet compatible?
+
+                boolean compat = (getFrom().getType() == Port.PortType.INFINITY);
+
+                double vLaunch  = compat ? GameConfig.INF_LAUNCH_SPEED : GameConfig.INF_MIN_SPEED;
+                double aMag     = compat ? GameConfig.INF_COMPAT_ACCEL : -GameConfig.INF_INCOMPAT_DECEL;
+
+                // start clean and straight on the wire
+                p.setVelocity(dir.multiplied(vLaunch));
+                p.setAcceleration(dir.multiplied(aMag));
+                // if you added this earlier:
+                p.clearImpulse();   // remove any sideways kick at launch
+
             }
             else if (p instanceof TrojanPacket) {
                 v0 = GameConfig.SPEED_OF_TROJAN_PACKET;
@@ -248,7 +261,14 @@
                     }
                 }
                 else{
-                    // TODO: 8/13/2025 infinity packet compatible?
+//                    Vector2D d01 = path.get(1).subtracted(path.get(0));
+//                    Vector2D dir = d01.lengthSq() > 1e-9 ? d01.normalized() : new Vector2D(1,0);
+
+                    boolean compat = (getFrom().getType() == Port.PortType.INFINITY);
+                    v0 = compat ? GameConfig.INF_LAUNCH_SPEED : GameConfig.INF_MIN_SPEED;
+
+                    p.setVelocity(dir.multiplied(v0));     // مهم: هم‌جهتِ سیم
+                    p.setAcceleration(new Vector2D());     // شتاب لحظه‌ی لانچ را اینجا صفر می‌کنیم؛
                 }
             }
             else if (p instanceof ConfidentialSmallPacket) {
@@ -312,6 +332,7 @@
 
         /** When a packet reaches the far port, hand it over to the node. */
         public void deliver(Packet p) {
+            p.resetMotionForNodeHop();   // <-- wipe deviations at the boundary
             to.getOwner().onDelivered(p, to);   // simple delegation
         }
 

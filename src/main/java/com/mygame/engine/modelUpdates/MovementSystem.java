@@ -117,18 +117,18 @@ public final class MovementSystem implements MovementStrategy {
 
             /* ── snap to next segment if we’re right at the bend ─────────────── */
             if (seg < pts.length - 2) {
-                for (int i = 0; i < 50; i++)
-                    System.out.println(seg);
+//                for (int i = 0; i < 50; i++)
+//                    //System.out.println(seg);
                 if (proj.point.distanceTo(pts[seg + 1]) <= TURN_R) {
-                    for (int i = 0; i < 50; i++)
-                        System.out.println("fffffffffffffffffffffffffff");
+                    //for (int i = 0; i < 50; i++)
+                        //System.out.println("fffffffffffffffffffffffffff");
                     seg++;                                     // pretend we’re already in it
                 }
             }
             if (seg != pow.segmentIndex) {
                 pow.segmentIndex = seg;  // update tracker
-                for (int i = 0; i < 50; i++)
-                    System.out.println("trtttttt");
+//                for (int i = 0; i < 50; i++)
+//                    System.out.println("trtttttt");
 
                 // update velocity to match new segment
                 Vector2D tangent = pts[seg + 1].subtracted(pts[seg]).normalized();

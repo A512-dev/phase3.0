@@ -20,6 +20,7 @@ public class CoinService {
 
     /** Add coins to the player. */
     public void addCoins(int amount) {
+        if (amount<0) return;
         hud.setCoins(hud.getCoins() + amount);
     }
 

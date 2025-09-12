@@ -23,7 +23,7 @@ public final class SaboteurNode extends Node {
     private double noiseChance = 0.15;                  // << much less noise
 
 
-    private static final double INFECT_CHANCE = 1;   // 30%
+    private static final double INFECT_CHANCE = 0.05;   // 30%
     private double trojanConversionProbability = INFECT_CHANCE;
     private static final Random RNG = new Random();
 

@@ -129,7 +129,7 @@ public class HUDState implements PacketEventListener {
     @Override
     public void onLost(Packet p) {
         lostPackets++;
-        coins = Math.max(0, coins - 1);
+        coins = Math.max(0, coins);
     }
 
     @Override
