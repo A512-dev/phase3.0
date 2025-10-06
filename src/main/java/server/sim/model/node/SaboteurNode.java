@@ -5,6 +5,8 @@ import server.sim.model.Port;
 import server.sim.model.packet.Packet;
 import server.sim.model.packet.ProtectedPacket;
 import server.sim.model.packet.TrojanPacket;
+import shared.model.NodeType;
+import shared.model.PortDirection;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -30,7 +32,7 @@ public final class SaboteurNode extends Node {
 
     public SaboteurNode(double x, double y, double w, double h) {
         super(x, y, w, h);
-        setNodeType(Type.SABOTEUR);
+        setNodeType(NodeType.SABOTEUR);
     }
 
     public void setIncompatibleRoutingEnabled(boolean v) { this.incompatibleRoutingEnabled = v; }
@@ -86,7 +88,7 @@ public final class SaboteurNode extends Node {
         for (Port port : getPorts()) if (port.isEmitting()) port.tickCooldown(dt);
         if (queue.isEmpty()) return;
 
-        Packet p = ((ArrayDeque<Packet>) queue).peekFirst();
+        Packet p = (queue).peekFirst();
         // Find a VALID opposite output: connected wire whose far end is an INPUT and the port can emit
         Port out = pickOppositeReadyOut(p);
         if (out == null) return; // <<< requirement: if no opposite ports, DO NOT send (keep queued)
@@ -109,7 +111,7 @@ public final class SaboteurNode extends Node {
     private List<Port> oppositeConnectedOutputs(boolean requireReady) {
         return outputs.stream()
                 .filter(o -> o.getWire() != null && o.getConnectedPort() != null)
-                .filter(o -> o.getConnectedPort().getDirection() == Port.PortDirection.INPUT)
+                .filter(o -> o.getConnectedPort().getDirection() == PortDirection.INPUT)
                 .filter(o -> !requireReady || o.canEmit())
                 .collect(Collectors.toList());
     }

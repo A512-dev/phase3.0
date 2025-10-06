@@ -1,7 +1,7 @@
 // src/main/java/com/mygame/debug/LossDebug.java
 package server.sim.engine.debug;
 
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.packet.Packet;
 
 import java.util.LinkedHashMap;

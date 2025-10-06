@@ -3,6 +3,7 @@ package server.sim.model.node;
 import server.sim.model.Port;
 import server.sim.model.packet.Packet;
 import server.sim.model.packet.TrojanPacket;
+import shared.model.NodeType;
 
 import java.util.Collection;
 import java.util.List;
@@ -14,7 +15,10 @@ public final class AntiTrojanNode extends Node {
     private double coolDown = 2.0;     // seconds between Actons
     private double timeUntilNextAction = 0;  // counts down
 
-    public AntiTrojanNode(double x, double y, double w, double h) { super(x, y, w, h); setNodeType(Type.ANTITROJAN);}
+    public AntiTrojanNode(double x, double y, double w, double h) {
+        super(x, y, w, h);
+        setNodeType(NodeType.ANTITROJAN);
+    }
 
     @Override
     public void onLost(Packet p) {

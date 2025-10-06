@@ -10,7 +10,7 @@ import server.sim.engine.world.level.Level;
 
 import server.sim.model.Connection;
 import server.sim.engine.loop.TimeController;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.PacketEventListener;
 import server.sim.model.Port;
 import server.sim.model.node.Node;
@@ -26,7 +26,9 @@ import server.sim.model.powerup.ActivePowerUp;
 import server.sim.model.powerup.PowerUpType;
 import server.sim.model.state.HUDState;
 import server.sim.service.CoinService;
-import server.sim.snapshot.*;
+import shared.snapshot.*;
+import shared.model.PortDirection;
+import shared.model.PortType;
 
 
 import java.util.*;
@@ -131,17 +133,16 @@ public class World {
 
         List<PacketSnapshot> pktSnaps = packets.stream()
                 .filter(Packet::isMobile)            // immobile ones are queued in nodes
-                .map(PacketSnapshot::of)
+                .map(Packet::of)
                 .toList();
 
 
 
         return new WorldSnapshot(
-                nodes.stream().map(NodeSnapshot::of).toList(),
+                nodes.stream().map(Node::of).toList(),
                 connSnaps,
                 pktSnaps,
                 hud.readOnlyCopy(),
-                coinService,// HudReadOnly instance
                 gameOver,                             // flag for overlays
                 viewOnlyMode                          // flag for review mode
         );
@@ -457,7 +458,7 @@ public class World {
         double h = ns.height();
 
         Node n;
-        switch (ns.type()) { // ← make sure NodeSnapshot.type() exists & is set in NodeSnapshot.of(...)
+        switch (ns.nodeType()) { // ← make sure NodeSnapshot.nodeType() exists & is set in NodeSnapshot.of(...)
             case BASIC       -> n = new server.sim.model.node.BasicNode(x, y, w, h);
             case SPY         -> n = new server.sim.model.node.SpyNode(x, y, w, h);
             case VPN         -> n = new server.sim.model.node.VPNNode(x, y, w, h);
@@ -468,7 +469,7 @@ public class World {
             default          -> n = new server.sim.model.node.BasicNode(x, y, w, h);
         }
         // if your constructors don’t set it, keep this line:
-        n.setNodeType(ns.type());
+        n.setNodeType(ns.nodeType());
         return n;
     }
 
@@ -488,21 +489,21 @@ public class World {
             // assume all your level-1/2 nodes are BasicNode; if you have other types
             // switch on ns.kind() to pick the right subclass
             // if you stored flags in kind or elsewhere, restore them here:
-//            if (Node.Type.BASIC.equals(ns.type()) ) {
+//            if (Node.NodeType.BASIC.equals(ns.nodeType()) ) {
 //                n.setBaseLeft(true);
 //            }
             // Convert port world pos → local offset
             for (PortSnapshot ps : ns.ports()) {
                 Vector2D local = ps.position().copy().subtracted(n.getPosition());
-                if (ps.direction() == Port.PortDirection.INPUT) {
+                if (ps.direction() == PortDirection.INPUT) {
                     n.addInputPort(ps.type(), local);
                 } else {
                     n.addOutputPort(ps.type(), local);
                 }
             }
             // restore queued packets
-            for (Packet qs : ns.queue()) {
-                Packet p = qs;
+            for (PacketSnapshot qs : ns.queue()) {
+                Packet p = Packet.fromSnapshot(qs);
                 p.setMobile(false);
                 n.enqueuePacket(p);
             }
@@ -535,7 +536,7 @@ public class World {
     private static final double EPS = 1e-3; // or a pixel, e.g. 0.5–1.0
 
     private Port resolvePort(Vector2D target,
-                             Port.PortType type,
+                             PortType type,
                              List<Node> nodes) {
 
         Port best = null;
@@ -814,12 +815,12 @@ public class World {
     public class PacketFactory {
         public ConfidentialPacket confidentialSmall(Vector2D pos){
             // TODO replace with your real ConfidentialPacketA
-            ConfidentialPacket p = new ConfidentialSmallPacket(pos);
+            ConfidentialPacket p = new ConfidentialSmallPacket(pos, GameConfig.CONFIDENTIAL_SMALL_PACKET_LIFE);
             return p;
         }
         public ConfidentialPacket confidentialLarge(Vector2D pos){
             // TODO real ConfidentialPacketB
-            ConfidentialPacket p = new ConfidentialLargePacket(pos);
+            ConfidentialPacket p = new ConfidentialLargePacket(pos, GameConfig.CONFIDENTIAL_LARGE_PACKET_LIFE);
             p.addTag("CONF_B");
             return p;
         }

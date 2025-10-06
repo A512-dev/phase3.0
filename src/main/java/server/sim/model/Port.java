@@ -1,15 +1,17 @@
 package server.sim.model;
 
 import server.sim.core.GameConfig;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.node.Node;
 import server.sim.model.node.BasicNode;
 import server.sim.model.packet.Packet;
+import shared.snapshot.PortSnapshot;
+import shared.model.PortDirection;
+import shared.model.PortType;
 
 public class Port {
 
-    public enum PortType { SQUARE, TRIANGLE, INFINITY }
-    public enum PortDirection { OUTPUT, INPUT }
+
 
     private final Vector2D position;
     private final PortType type;
@@ -32,6 +34,15 @@ public class Port {
         this.direction = direction;
         this.position = position;
     }
+
+    public static PortSnapshot of(Port p) {
+        return new PortSnapshot(
+                p.getPosition().copy(),
+                p.getType(),
+                p.getDirection()
+        );
+    }
+
     /** Wire‐back‐pointer: which Connection this port is on */
     public Connection getWire() { return wire; }
     public void setWire(Connection wire) {

@@ -5,16 +5,16 @@ import java.awt.*;
 import java.util.EnumMap;
 import java.util.Map;
 
-import server.sim.engine.physics.Vector2D;
-import server.sim.model.packet.Packet;
-import server.sim.snapshot.PacketSnapshot;
+import shared.Vector2D;
+import shared.snapshot.PacketSnapshot;
 import client.view.assets.Draw;
 import client.view.assets.ImageCache;
+import shared.model.PacketShape;
 
 
 public class PacketView implements View<PacketSnapshot> {
     private final ImageCache cache = ImageCache.get();
-    private final Map<Packet.Shape, Image> base = new EnumMap<>(Packet.Shape.class);
+    private final Map<PacketShape, Image> base = new EnumMap<>(PacketShape.class);
 
     // overlays
     private final Image antiTrojanNode  = cache.load("/nodes/AntiTrojanNodePic.jpg");
@@ -40,16 +40,16 @@ public class PacketView implements View<PacketSnapshot> {
 
     public PacketView() {
         System.out.println();
-        base.put(Packet.Shape.SQUARE,        null);
-        base.put(Packet.Shape.TRIANGLE,      null);
-        base.put(Packet.Shape.INFINITY,      cache.load("/packets/infinity.png"));
-        base.put(Packet.Shape.HEXAGON,       cache.load("/packets/hexagon.png"));
-        base.put(Packet.Shape.BULK_A,        cache.load("/packets/bulkPacketA.png"));
-        base.put(Packet.Shape.BULK_B,        cache.load("/packets/bulkPacketB.png"));
-        base.put(Packet.Shape.CONFIDENTIAL_S,cache.load("/packets/confidentialSmall.png"));
-        base.put(Packet.Shape.CONFIDENTIAL_L,cache.load("/packets/confidentialLarge.png"));
-        base.put(Packet.Shape.LOCK,          cache.load("/packets/protected.png")); // fallback
-        base.put(Packet.Shape.TROJAN,       null); // optional
+        base.put(PacketShape.SQUARE,        null);
+        base.put(PacketShape.TRIANGLE,      null);
+        base.put(PacketShape.INFINITY,      cache.load("/packets/infinity.png"));
+        base.put(PacketShape.HEXAGON,       cache.load("/packets/hexagon.png"));
+        base.put(PacketShape.BULK_A,        cache.load("/packets/bulkPacketA.png"));
+        base.put(PacketShape.BULK_B,        cache.load("/packets/bulkPacketB.png"));
+        base.put(PacketShape.CONFIDENTIAL_S,cache.load("/packets/confidentialSmall.png"));
+        base.put(PacketShape.CONFIDENTIAL_L,cache.load("/packets/confidentialLarge.png"));
+        base.put(PacketShape.LOCK,          cache.load("/packets/protected.png")); // fallback
+        base.put(PacketShape.TROJAN,       null); // optional
     }
 
     public void render(Graphics2D g, PacketSnapshot s) {
@@ -59,14 +59,14 @@ public class PacketView implements View<PacketSnapshot> {
         int y = (int) Math.round(pos.y() - size / 2.0);
 
         final double  alpha = s.opacity();
-        Image img = base.get(s.shape());
+        Image img = base.get(s.packetShape());
 
         if (img == null) {
             // graceful fallback to old primitive if art is missing
             drawPrimitiveFallback(g, s);
             return;
         }
-        //System.out.println(s.shape());
+        //System.out.println(s.packetShape());
 
         // base sprite
         Draw.imageCentered(g, img, pos.x(), pos.y(), size, alpha, 0);
@@ -88,13 +88,13 @@ public class PacketView implements View<PacketSnapshot> {
 
 
         /* body */
-        if (s.shape() == Packet.Shape.SQUARE) {
+        if (s.packetShape() == PacketShape.SQUARE) {
             g.setColor(new Color(0,0,255,(int)(s.opacity()*255)));
             g.fillRect(x, y, size, size);
             g.setColor(Color.BLACK);
             g.drawRect(x, y, size, size);
         }
-        else if (s.shape() == Packet.Shape.TRIANGLE){
+        else if (s.packetShape() == PacketShape.TRIANGLE){
             int half = size / 2;
             g.setColor(new Color(255,0,0,(int)(s.opacity()*255)));
             int[] xs = { (int) Math.round(pos.x()), (int) Math.round(pos.x()-half), (int) Math.round(pos.x()+half) };
@@ -103,7 +103,7 @@ public class PacketView implements View<PacketSnapshot> {
             g.setColor(Color.BLACK);
             g.drawPolygon(xs, ys, 3);
         }
-        else if (s.shape() == Packet.Shape.TROJAN) {
+        else if (s.packetShape() == PacketShape.TROJAN) {
             int half = size / 2;
             g.setColor(Color.black);
             g.drawOval(x+half, y+half, half, half);
@@ -111,6 +111,10 @@ public class PacketView implements View<PacketSnapshot> {
 
 
     }
+
+
+
+
     private boolean has(BooleanSupplierEx b) {
         try { return b.getAsBoolean(); } catch (Throwable ignored) { return false; }
     }
@@ -124,7 +128,7 @@ public class PacketView implements View<PacketSnapshot> {
         int x = (int) Math.round(pos.x() - sz / 2.0);
         int y = (int) Math.round(pos.y() - sz / 2.0);
 
-        switch (s.shape()) {
+        switch (s.packetShape()) {
             case SQUARE -> {
                 g.setColor(new Color(0,0,255,(int)(s.opacity()*255)));
                 g.fillRect(x, y, sz, sz);

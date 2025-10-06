@@ -1,4 +1,4 @@
-package server.sim.snapshot;
+package shared.snapshot;
 
 public record HudReadOnly(
         int coins,

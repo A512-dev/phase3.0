@@ -4,7 +4,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
 
-import server.sim.snapshot.HudReadOnly;
+import shared.snapshot.HudReadOnly;
 
 public class HUDView implements View<HudReadOnly> {
     @Override

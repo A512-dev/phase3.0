@@ -2,11 +2,10 @@
 package server.sim.engine.world.level;
 
 import server.sim.core.GameConfig;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.engine.world.World;
 import server.sim.model.Connection;
-import server.sim.model.Port;
-import server.sim.model.Port.PortType;
+
 import server.sim.model.node.*;
 import server.sim.model.packet.Packet;
 import server.sim.model.packet.bulkPacket.types.BulkPacketA;
@@ -15,6 +14,7 @@ import server.sim.model.packet.confidentialPacket.types.ConfidentialSmallPacket;
 import server.sim.model.packet.messengerPacket.types.InfinityPacket;
 import server.sim.model.packet.messengerPacket.types.SquarePacket;
 import server.sim.model.packet.messengerPacket.types.TrianglePacket;
+import shared.model.PortType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -237,13 +237,13 @@ public final class Level{
                 baseLeft.getHeight() / 3));
         baseLeft.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth() - cfg.portSize / 2,
                 2 * baseLeft.getHeight() / 3));
-        baseLeft.addInputPort(Port.PortType.SQUARE, new Vector2D(-cfg.portSize / 2, baseLeft.getHeight()/2));
+        baseLeft.addInputPort(PortType.SQUARE, new Vector2D(-cfg.portSize / 2, baseLeft.getHeight()/2));
         baseLeft.setBaseLeft(true);
         world.getNodes().add(baseLeft);
 
         BasicNode mid1 = new BasicNode(250, 50, cfg.nodeWidth, cfg.nodeHeight);
-        mid1.addInputPort(Port.PortType.SQUARE, new Vector2D(-cfg.portSize / 2, baseLeft.getHeight()/2));
-        mid1.addOutputPort(Port.PortType.SQUARE, new Vector2D(baseLeft.getWidth() -cfg.portSize / 2, baseLeft.getHeight()/2));
+        mid1.addInputPort(PortType.SQUARE, new Vector2D(-cfg.portSize / 2, baseLeft.getHeight()/2));
+        mid1.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() -cfg.portSize / 2, baseLeft.getHeight()/2));
         world.getNodes().add(mid1);
 
 //        SystemNode mid2 = new SystemNode(200, 350);
@@ -252,9 +252,9 @@ public final class Level{
 //        nodes.add(mid2);
 
         BasicNode mid3 = new BasicNode(450, 300, cfg.nodeWidth, cfg.nodeHeight);
-        mid3.addInputPort(Port.PortType.SQUARE, new Vector2D(-cfg.portSize / 2, 1*baseLeft.getHeight()/3));
-        mid3.addInputPort(Port.PortType.TRIANGLE, new Vector2D(-cfg.portSize / 2, 2*baseLeft.getHeight()/3));
-        mid3.addOutputPort(Port.PortType.SQUARE, new Vector2D(baseLeft.getWidth() -cfg.portSize / 2, baseLeft.getHeight()/2));
+        mid3.addInputPort(PortType.SQUARE, new Vector2D(-cfg.portSize / 2, 1*baseLeft.getHeight()/3));
+        mid3.addInputPort(PortType.TRIANGLE, new Vector2D(-cfg.portSize / 2, 2*baseLeft.getHeight()/3));
+        mid3.addOutputPort(PortType.SQUARE, new Vector2D(baseLeft.getWidth() -cfg.portSize / 2, baseLeft.getHeight()/2));
         world.getNodes().add(mid3);
 
         BasicNode baseRight = new BasicNode(650, 400, cfg.nodeWidth, cfg.nodeHeight);
@@ -400,21 +400,21 @@ public final class Level{
         // BaseLeft: emitter + collector (success counted when packets enter its inputs)
         BasicNode baseLeft = new BasicNode(30, 260, cfg.nodeWidth, cfg.nodeHeight);
         baseLeft.setBaseLeft(true);
-        baseLeft.addOutputPort(Port.PortType.SQUARE,   new Vector2D(baseLeft.getWidth()-cfg.portSize/2, baseLeft.getHeight()/3));
-        baseLeft.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(baseLeft.getWidth()-cfg.portSize/2, 2*baseLeft.getHeight()/3));
-        baseLeft.addInputPort(Port.PortType.SQUARE,    new Vector2D(-cfg.portSize/2, baseLeft.getHeight()/3));
-        baseLeft.addInputPort(Port.PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, 2*baseLeft.getHeight()/3));
+        baseLeft.addOutputPort(PortType.SQUARE,   new Vector2D(baseLeft.getWidth()-cfg.portSize/2, baseLeft.getHeight()/3));
+        baseLeft.addOutputPort(PortType.TRIANGLE, new Vector2D(baseLeft.getWidth()-cfg.portSize/2, 2*baseLeft.getHeight()/3));
+        baseLeft.addInputPort(PortType.SQUARE,    new Vector2D(-cfg.portSize/2, baseLeft.getHeight()/3));
+        baseLeft.addInputPort(PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, 2*baseLeft.getHeight()/3));
 
         // Distributor: separates Square / Triangle lanes
         DistributorNode distro = new DistributorNode(200, 100, cfg.nodeWidth, cfg.nodeHeight);
-        distro.addInputPort(Port.PortType.SQUARE,   new Vector2D(-cfg.portSize/2, distro.getHeight()/3));
-        distro.addInputPort(Port.PortType.TRIANGLE, new Vector2D(-cfg.portSize/2, 2*distro.getHeight()/3));
-        distro.addOutputPort(Port.PortType.SQUARE,   new Vector2D(distro.getWidth()-cfg.portSize/2, distro.getHeight()/3));       // top
-        distro.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(distro.getWidth()-cfg.portSize/2, 2*distro.getHeight()/3));     // bottom
+        distro.addInputPort(PortType.SQUARE,   new Vector2D(-cfg.portSize/2, distro.getHeight()/3));
+        distro.addInputPort(PortType.TRIANGLE, new Vector2D(-cfg.portSize/2, 2*distro.getHeight()/3));
+        distro.addOutputPort(PortType.SQUARE,   new Vector2D(distro.getWidth()-cfg.portSize/2, distro.getHeight()/3));       // top
+        distro.addOutputPort(PortType.TRIANGLE, new Vector2D(distro.getWidth()-cfg.portSize/2, 2*distro.getHeight()/3));     // bottom
 
         // Top corridor: Saboteur → (curvy wire) → VPN → Merger (SQUARE + BULK)
         SaboteurNode sab = new SaboteurNode(410, 160, cfg.nodeWidth, cfg.nodeHeight);
-        sab.addInputPort(Port.PortType.SQUARE,  new Vector2D(-cfg.portSize/2, sab.getHeight()/3));
+        sab.addInputPort(PortType.SQUARE,  new Vector2D(-cfg.portSize/2, sab.getHeight()/3));
         sab.addInputPort(PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, 2*sab.getHeight()/3));
 
         sab.addOutputPort(PortType.SQUARE, new Vector2D(sab.getWidth()-cfg.portSize/2, sab.getHeight()/3));
@@ -424,17 +424,17 @@ public final class Level{
         sab.setInjectUnitNoiseIfNone(false);       // keep drift minimal
 
         VPNNode vpn = new VPNNode(560, 160, cfg.nodeWidth, cfg.nodeHeight);
-        vpn.addInputPort(Port.PortType.SQUARE,  new Vector2D(-cfg.portSize/2, vpn.getHeight()/3));
+        vpn.addInputPort(PortType.SQUARE,  new Vector2D(-cfg.portSize/2, vpn.getHeight()/3));
         vpn.addInputPort(PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, 2*vpn.getHeight()/3));
 
-        vpn.addOutputPort(Port.PortType.SQUARE, new Vector2D(vpn.getWidth()-cfg.portSize/2, vpn.getHeight()/2));
+        vpn.addOutputPort(PortType.SQUARE, new Vector2D(vpn.getWidth()-cfg.portSize/2, vpn.getHeight()/2));
 
 
 
         MergerNode mergeS = new MergerNode(710, 220, cfg.nodeWidth, cfg.nodeHeight);
-        mergeS.addInputPort(Port.PortType.SQUARE, new Vector2D(-cfg.portSize/2, mergeS.getHeight()/3));
+        mergeS.addInputPort(PortType.SQUARE, new Vector2D(-cfg.portSize/2, mergeS.getHeight()/3));
         mergeS.addInputPort(PortType.TRIANGLE, new Vector2D(-cfg.portSize/2, 2*mergeS.getHeight()/3)); // room for a 2nd feed if player rewires
-        mergeS.addOutputPort(Port.PortType.SQUARE, new Vector2D(mergeS.getWidth()-cfg.portSize/2, mergeS.getHeight()/2));
+        mergeS.addOutputPort(PortType.SQUARE, new Vector2D(mergeS.getWidth()-cfg.portSize/2, mergeS.getHeight()/2));
 
         // Gentle safety near the merge
         AntiTrojanNode anti = new AntiTrojanNode(660, 260, cfg.antiTrojanNodeWidth, cfg.antiTrojanNodeHeight);
@@ -442,19 +442,19 @@ public final class Level{
 
         // Bottom corridor: SpyA → (teleport) → SpyB → BaseRight (TRIANGLE)
         SpyNode spyA = new SpyNode(340, 30, cfg.spyNodeWidth, cfg.spyNodeHeight);
-        spyA.addInputPort(Port.PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, spyA.getHeight()/2));
+        spyA.addInputPort(PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, spyA.getHeight()/2));
         //spyA.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(spyA.getWidth()-cfg.portSize/2, spyA.getHeight()/2));
         SpyNode spyB = new SpyNode(680, 380, cfg.spyNodeWidth, cfg.spyNodeHeight);
         //spyB.addInputPort(Port.PortType.TRIANGLE,  new Vector2D(-cfg.portSize/2, spyB.getHeight()/2));
-        spyB.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(spyB.getWidth()-cfg.portSize/2, spyB.getHeight()/2));
+        spyB.addOutputPort(PortType.TRIANGLE, new Vector2D(spyB.getWidth()-cfg.portSize/2, spyB.getHeight()/2));
         SpyNode.linkSpies(spyA, spyB);
 
         // BaseRight: sink/relay back to BaseLeft
         BasicNode baseRight = new BasicNode(820, 340, cfg.nodeWidth, cfg.nodeHeight);
-        baseRight.addInputPort(Port.PortType.SQUARE,   new Vector2D(-cfg.portSize/2, baseRight.getHeight()/3));
-        baseRight.addInputPort(Port.PortType.TRIANGLE, new Vector2D(-cfg.portSize/2, 2*baseRight.getHeight()/3));
-        baseRight.addOutputPort(Port.PortType.SQUARE,   new Vector2D(baseRight.getWidth()-cfg.portSize/2, baseRight.getHeight()/3));
-        baseRight.addOutputPort(Port.PortType.TRIANGLE, new Vector2D(baseRight.getWidth()-cfg.portSize/2, 2*baseRight.getHeight()/3));
+        baseRight.addInputPort(PortType.SQUARE,   new Vector2D(-cfg.portSize/2, baseRight.getHeight()/3));
+        baseRight.addInputPort(PortType.TRIANGLE, new Vector2D(-cfg.portSize/2, 2*baseRight.getHeight()/3));
+        baseRight.addOutputPort(PortType.SQUARE,   new Vector2D(baseRight.getWidth()-cfg.portSize/2, baseRight.getHeight()/3));
+        baseRight.addOutputPort(PortType.TRIANGLE, new Vector2D(baseRight.getWidth()-cfg.portSize/2, 2*baseRight.getHeight()/3));
 
         // Add nodes
         world.addNode(baseLeft);
@@ -517,7 +517,7 @@ public final class Level{
                     else
                         p = new BulkPacketB(emit.copy(), cfg.bulkPacketPayLoad, cfg.bulkPacketLife);   // lateral wave (MovementSystem clamps)
                 } else if (k % 8 == 0) {
-                    p = new ConfidentialSmallPacket(emit.copy());               // justifies the VPN in top lane
+                    p = new ConfidentialSmallPacket(emit.copy(), GameConfig.CONFIDENTIAL_SMALL_PACKET_LIFE);               // justifies the VPN in top lane
                 }
                 else if ((k & 1) == 0) {
                     p = new SquarePacket(emit.copy(), GameConfig.squareLife, GameConfig.squareSize);
@@ -614,7 +614,7 @@ public final class Level{
         BasicNode sink = addBasicNode(world, 640, 300, cfg);
         sink.addInputPort(PortType.SQUARE, pointMaker(-cfg.portSize/2, sink.getHeight()/2));
 
-        // If you have a TrojanPacket type, enqueue 2 to ensure the anti node reverts them.
+        // If you have a TrojanPacket nodeType, enqueue 2 to ensure the anti node reverts them.
         // for (int i = 0; i < 2; i++) baseL.enqueuePacket(new TrojanPacket(centerOf(baseL)));
         enqueueRandomMessenger(baseL, 6, world);
 
@@ -791,7 +791,7 @@ public final class Level{
         // 1) Top path: cycle through three messenger flavors; half go through VPN (protected), half go to SpyA (unprotected)
         enqueueMessengerTriplet(emitter, 6, world); // emits SQUARE, TRIANGLE, (THIRD), repeating; queued/motion control stays with nodes
 
-        // Route control: if you choose outputs by player wiring, keep both wires as above. If emitter chooses port by packet type,
+        // Route control: if you choose outputs by player wiring, keep both wires as above. If emitter chooses port by packet nodeType,
         // ensure both outputs are used (e.g., SQUARE -> port0 (VPN path), TRIANGLE/THIRD -> port1 (SpyA path)).
 
         // 2) Confidential lane: emit two Conf A; one goes through sysQ then VPN_B => becomes Conf B, one directly into SpyC (lost)
@@ -821,7 +821,7 @@ public final class Level{
         world.getCoinService().addCoins(10);
     }
 
-    /** Cycles Square, Triangle, and a third messenger type if you have it (fallback to Triangle). */
+    /** Cycles Square, Triangle, and a third messenger nodeType if you have it (fallback to Triangle). */
     private void enqueueMessengerTriplet(Node emitter, int count, World world) {
         for (int i = 0; i < count; i++) {
             Packet p;
@@ -831,7 +831,7 @@ public final class Level{
             } else if (mod == 1) {
                 p = new TrianglePacket(centerOf(emitter), GameConfig.triangleLife, GameConfig.triangleSize);
             } else {
-                // TODO: replace with your third messenger type (e.g., CirclePacket or InfinityPacket)
+                // TODO: replace with your third messenger nodeType (e.g., CirclePacket or InfinityPacket)
                 p = new InfinityPacket(centerOf(emitter), GameConfig.infinityLife, GameConfig.infinitySize);
             }
             p.setMobile(false);

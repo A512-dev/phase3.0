@@ -1,11 +1,12 @@
 package server.sim.model.packet.confidentialPacket;
 
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.packet.Packet;
+import shared.model.PacketShape;
 
 public abstract class ConfidentialPacket extends Packet {
 
-    protected ConfidentialPacket(Vector2D spawn, int health, int sizeUnits) {
+    protected ConfidentialPacket(Vector2D spawn, double health, int sizeUnits) {
         super(spawn, health, sizeUnits);
     }
 
@@ -14,8 +15,8 @@ public abstract class ConfidentialPacket extends Packet {
         return true;
     }
     @Override
-    public Shape shape() {
-        return Shape.HEXAGON;
+    public PacketShape shape() {
+        return PacketShape.HEXAGON;
     }
 
     @Override

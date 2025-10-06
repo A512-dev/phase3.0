@@ -3,6 +3,7 @@ package client.net;
 import shared.net.Envelope;
 import shared.net.MessageType;
 import shared.ser.Json;
+import shared.snapshot.WorldSnapshot;
 
 import java.io.*;
 import java.net.Socket;
@@ -94,10 +95,10 @@ public final class NetClient {
     }
 
     // optional: expose a convenience for frame updates
-    public void onFrame(java.util.function.Consumer<shared.dto.WorldFrameDTO> h){
+    public void onFrame(java.util.function.Consumer<WorldSnapshot> h){
         onMessage((t,p)->{
-            if (t == MessageType.FRAME_UPDATE) {
-                h.accept(Json.from(p, shared.dto.WorldFrameDTO.class));
+            if (t == MessageType.FRAME) {
+                h.accept(Json.from(p, WorldSnapshot.class));
             }
         });
     }

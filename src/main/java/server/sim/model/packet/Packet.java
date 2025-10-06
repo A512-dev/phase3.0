@@ -3,11 +3,21 @@ package server.sim.model.packet;
 
 import server.sim.core.GameConfig;
 import server.sim.engine.physics.PhysicsBody;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.Connection;
 import server.sim.model.Port;
 import server.sim.model.packet.bulkPacket.BitPacket;
+import server.sim.model.packet.bulkPacket.types.BulkPacketA;
+import server.sim.model.packet.bulkPacket.types.BulkPacketB;
 import server.sim.model.packet.confidentialPacket.ConfidentialPacket;
+import server.sim.model.packet.confidentialPacket.types.ConfidentialLargePacket;
+import server.sim.model.packet.confidentialPacket.types.ConfidentialSmallPacket;
+import server.sim.model.packet.messengerPacket.types.InfinityPacket;
+import server.sim.model.packet.messengerPacket.types.SquarePacket;
+import server.sim.model.packet.messengerPacket.types.TrianglePacket;
+import shared.snapshot.PacketSnapshot;
+import shared.model.PacketShape;
+import shared.model.PortType;
 
 public abstract class Packet implements PhysicsBody {
 
@@ -20,6 +30,132 @@ public abstract class Packet implements PhysicsBody {
     // ---- health & status ----
     protected int maxHealth = 100;
     protected double health  = maxHealth;
+
+    public static PacketSnapshot of(Packet p) {
+        Vector2D pathStart = (p.getFromPort() != null) ? p.getFromPort().getCenter() : p.getPosition();
+        Vector2D pathEnd = (p.getToPort() != null) ? p.getToPort().getCenter() : p.getPosition();
+        PortType fromType = (p.getFromPort() != null) ? p.getFromPort().getType() : null;
+        PortType toType = (p.getToPort() != null) ? p.getToPort().getType() : null;
+
+        return new PacketSnapshot(
+                p.getPosition().copy(),
+                p.getRadius(),
+                p.getHealth(),
+                p.getOpacity(),
+                p.shape(),
+                (p instanceof ProtectedPacket)
+                        ? ((ProtectedPacket) p).getOriginal().shape()
+                        : p.shape(),
+                p.isMobile(),
+                pathStart.copy(),
+                pathEnd.copy(),
+                fromType,
+                toType,
+                p.isProtectedPacket(),
+                p.isTrojanPacket(),
+                p.isBitPacket(),
+                p.payloadSize
+        );
+
+    }
+
+    /** Factory: rehydrate a model Packet from an immutable PacketSnapshot. */
+    public static Packet fromSnapshot(PacketSnapshot s) {
+        // 1) Choose concrete packet type based on shape/flags
+        Packet pkt = switch (s.packetShape()) {
+            case SQUARE   ->
+                    new SquarePacket(s.position().copy(), s.health(), (int) Math.round(s.size()));
+            case TRIANGLE ->
+                    new TrianglePacket(s.position().copy(),  s.health(), GameConfig.triangleSize);
+            case INFINITY -> new InfinityPacket(s.position().copy(), s.health(), GameConfig.infinitySize);
+            case HEXAGON  -> new InfinityPacket(s.position().copy(), s.health()+1.0, GameConfig.infinitySize);
+            /* TODO or fall back */
+            case BULK_A -> new BulkPacketA(s.position().copy(),s.payload(), s.health());
+            case BULK_B -> new BulkPacketB(s.position().copy(),s.payload(), s.health());
+            case CONFIDENTIAL_S -> new ConfidentialSmallPacket(s.position().copy(), s.health());
+            case CONFIDENTIAL_L -> new ConfidentialLargePacket(s.position().copy(), s.health());
+            case LOCK -> {
+                if (s.protectedByVPN()) {
+                    // make a copy so we can adjust the shape if needed
+                    PacketSnapshot z = new PacketSnapshot(
+                            s.position(),
+                            s.size(),
+                            s.health(),
+                            s.opacity(),
+                            s.originalPacketShapeIfProtected(),
+                            s.originalPacketShapeIfProtected(),
+                            s.isMobile(),
+                            s.pathStart(),
+                            s.pathEnd(),
+                            s.fromType(),
+                            s.toType(),
+                            false,
+                            s.trojan(),
+                            s.bit(),
+                            s.payload()
+                    );
+                    yield new ProtectedPacket(fromSnapshot(z));
+                }
+                else
+                    yield new InfinityPacket(s.position().copy(), s.health(), GameConfig.infinitySize);
+            }
+            case TROJAN -> {
+                if (s.trojan()) {
+                    // make a copy so we can adjust the shape if needed
+                    PacketSnapshot z = new PacketSnapshot(
+                            s.position(),
+                            s.size(),
+                            s.health(),
+                            s.opacity(),
+                            s.originalPacketShapeIfProtected(),
+                            s.originalPacketShapeIfProtected(),
+                            s.isMobile(),
+                            s.pathStart(),
+                            s.pathEnd(),
+                            s.fromType(),
+                            s.toType(),
+                            s.protectedByVPN(),
+                            false,
+                            s.bit(),
+                            s.payload()
+                    );
+                    yield new ProtectedPacket(fromSnapshot(z));
+                }
+                else
+                    yield new InfinityPacket(s.position().copy(), s.health(), GameConfig.infinitySize);
+            }
+            case BIT -> {
+                // TODO: 10/6/2025
+                yield new InfinityPacket(s.position().copy(), s.health(), GameConfig.infinitySize);
+            }
+
+//                    -> defaultBasic(s);
+        };
+
+        // 2) Copy shared scalar fields (adjust setter names to your API)
+        pkt.setOpacity(s.opacity());
+        pkt.setMobile(s.isMobile());
+        if (s.protectedByVPN()) pkt.setProtectedPacket(true);
+        if (s.trojan())         pkt.setTrojanPacket(true);
+        if (s.bit())            pkt.setBitPacket(true);
+
+        // 3) Optional: if your model supports remembering the path endpoints/types
+        //    (Only if these exist in your API — otherwise omit)
+        // pkt.setPathStart(s.pathStart());  // if you have such methods
+        // pkt.setPathEnd(s.pathEnd());
+        // pkt.setFromType(s.fromType());
+        // pkt.setToType(s.toType());
+
+        return pkt;
+    }
+
+    private void setBitPacket(boolean b) {
+
+    }
+
+    private void setTrojanPacket(boolean b) {
+
+    }
 
 
     // --- public API ---
@@ -41,10 +177,6 @@ public abstract class Packet implements PhysicsBody {
     public void addNoise(double i) {
         noise += i;
     }
-
-    public enum Shape { SQUARE, TRIANGLE, INFINITY, HEXAGON, LOCK, BULK_A, CONFIDENTIAL_S, CONFIDENTIAL_L, BULK_B , TROJAN}
-
-
 
 
     protected Vector2D pos   = new Vector2D(0,0);
@@ -146,7 +278,7 @@ public abstract class Packet implements PhysicsBody {
 
     /* ------------ abstract bits ------------ */
     public abstract int getCoinValue();
-    public abstract Shape shape();
+    public abstract PacketShape shape();
 
     public void setAlive(boolean aliveStatus) {
         if (aliveStatus)

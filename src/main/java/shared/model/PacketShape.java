@@ -1,0 +1,3 @@
+package shared.model;
+
+public enum PacketShape {SQUARE, TRIANGLE, INFINITY, HEXAGON, LOCK, BULK_A, CONFIDENTIAL_S, CONFIDENTIAL_L, BULK_B, TROJAN, BIT}

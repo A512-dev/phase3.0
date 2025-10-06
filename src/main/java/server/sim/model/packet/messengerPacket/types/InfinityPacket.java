@@ -2,13 +2,14 @@
 
 package server.sim.model.packet.messengerPacket.types;
 
-        import server.sim.engine.physics.Vector2D;
+        import shared.Vector2D;
         import server.sim.model.packet.messengerPacket.MessengerPacket;
+        import shared.model.PacketShape;
 
 public final class InfinityPacket extends MessengerPacket {
 
     public InfinityPacket(Vector2D spawn, double health, double radius) {
-        super(spawn, Shape.INFINITY, radius); // Health/size = 1 unit
+        super(spawn, PacketShape.INFINITY, radius); // Health/size = 1 unit
         this.health = health;
     }
 
@@ -18,8 +19,8 @@ public final class InfinityPacket extends MessengerPacket {
     }
 
     @Override
-    public Shape shape() {
-        return Shape.INFINITY;
+    public PacketShape shape() {
+        return PacketShape.INFINITY;
     }
 
     @Override

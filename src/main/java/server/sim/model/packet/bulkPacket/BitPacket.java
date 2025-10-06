@@ -1,8 +1,9 @@
 package server.sim.model.packet.bulkPacket;
 
 import server.sim.core.GameConfig;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.packet.Packet;
+import shared.model.PacketShape;
 
 /**
  * A size-1 bit packet produced by a Distributor from a bulk packet.
@@ -34,7 +35,7 @@ public final class BitPacket extends Packet {
 
     /** برای نمایش شِمای Messenger/Infinity استفاده می‌شود. */
     @Override
-    public Shape shape() { return Shape.INFINITY; }
+    public PacketShape shape() { return PacketShape.INFINITY; }
 
     /** کپی عیناً باید group/color و مسیر را حفظ کند. */
     @Override

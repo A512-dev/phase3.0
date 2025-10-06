@@ -1,13 +1,14 @@
 package server.sim.model.packet.confidentialPacket.types;
 
 import server.sim.core.GameConfig;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.packet.Packet;
 import server.sim.model.packet.confidentialPacket.ConfidentialPacket;
+import shared.model.PacketShape;
 
 public final class ConfidentialSmallPacket extends ConfidentialPacket {
 
-    public ConfidentialSmallPacket(Vector2D spawn) {
+    public ConfidentialSmallPacket(Vector2D spawn, double health) {
         super(spawn, GameConfig.CONFIDENTIAL_SMALL_PACKET_LIFE, GameConfig.CONFIDENTIAL_SMALL_PACKET_SIZE); // Size = 4 units
     }
 
@@ -18,7 +19,7 @@ public final class ConfidentialSmallPacket extends ConfidentialPacket {
 
     @Override
     public Packet copy() {
-        ConfidentialSmallPacket copy = new ConfidentialSmallPacket(pos.copy());
+        ConfidentialSmallPacket copy = new ConfidentialSmallPacket(pos.copy(), health);
         copy.setVelocity(vel.copy());
         copy.setAcceleration(getAcceleration().copy());
         return copy;
@@ -34,7 +35,7 @@ public final class ConfidentialSmallPacket extends ConfidentialPacket {
     @Override public void     setVelocity(Vector2D v) { vel.set(v); }
 
     @Override
-    public Shape shape() {
-        return Shape.CONFIDENTIAL_S;
+    public PacketShape shape() {
+        return PacketShape.CONFIDENTIAL_S;
     }
 }

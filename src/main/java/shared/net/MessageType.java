@@ -4,7 +4,7 @@ public enum MessageType {
     JOIN, JOIN_OK,
     START_GAME,         // ← add this
     INPUT_COMMAND,
-    FRAME_UPDATE,
+    FRAME,
     SCOREBOARD,
     PING, PONG,
     DISCONNECT

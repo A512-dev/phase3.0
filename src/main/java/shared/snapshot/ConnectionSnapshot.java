@@ -1,10 +1,11 @@
 
 // ────────────────────────── com/mygame/engine/world/ConnectionSnapshot.java
-package server.sim.snapshot;
+package shared.snapshot;
 
 
-import server.sim.engine.physics.Vector2D;
-import server.sim.model.Port.PortType;
+import shared.Vector2D;
+import shared.model.PortType;
+
 
 import java.util.List;
 

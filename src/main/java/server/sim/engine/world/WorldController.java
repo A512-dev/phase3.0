@@ -1,7 +1,7 @@
 package server.sim.engine.world;
 
 import server.sim.engine.modelUpdates.MovementSystem;
-import server.sim.snapshot.WorldSnapshot;
+import shared.snapshot.WorldSnapshot;
 
 public final class WorldController {
 

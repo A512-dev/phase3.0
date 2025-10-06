@@ -6,7 +6,7 @@ public final class Envelope {
     public Envelope() {}
     public Envelope(MessageType t, String p){ this.type=t; this.payload=p; }
     @Override public String toString() {
-        return "Envelope{type=" + type + ", payload=" + payload + "}";
+        return "Envelope{nodeType=" + type + ", payload=" + payload + "}";
     }
 
 }

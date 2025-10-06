@@ -1,7 +1,7 @@
 package server.sim.model.state;
 
 import server.sim.core.GameConfig;
-import server.sim.snapshot.HudReadOnly;
+import shared.snapshot.HudReadOnly;
 import server.sim.model.PacketEventListener;
 import server.sim.model.packet.Packet;
 import server.sim.model.powerup.PowerUpType;

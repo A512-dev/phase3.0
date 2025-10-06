@@ -1,15 +1,16 @@
 // MessengerTrianglePacket.java
 package server.sim.model.packet.messengerPacket.types;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.packet.messengerPacket.MessengerPacket;
+import shared.model.PacketShape;
 
 public final class TrianglePacket extends MessengerPacket {
     public TrianglePacket(Vector2D spawn, double health, double radius){
-        super(spawn, Shape.TRIANGLE, radius);
+        super(spawn, PacketShape.TRIANGLE, radius);
         this.health = health;
     }
     @Override public int getCoinValue(){ return 3; }
-    @Override public Shape shape(){ return Shape.TRIANGLE; }
+    @Override public PacketShape shape(){ return PacketShape.TRIANGLE; }
 
     @Override
     public TrianglePacket copy() {

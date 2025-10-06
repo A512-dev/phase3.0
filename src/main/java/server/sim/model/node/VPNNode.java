@@ -5,6 +5,7 @@ import server.sim.model.PacketEventListener;
 import server.sim.model.Port;
 import server.sim.model.packet.Packet;
 import server.sim.model.packet.ProtectedPacket;
+import shared.model.NodeType;
 
 import java.util.*;
 
@@ -17,7 +18,7 @@ public final class VPNNode extends Node {
         PacketEventListener lis = packetEventListener;
         for (Packet p : converted) {
             if (p == null) continue;
-            // revert flags/tags only; type stays same in your current model
+            // revert flags/tags only; nodeType stays same in your current model
             p.setProtectedPacket(false);
             p.removeTag("PROTECTED");
             if (lis != null) lis.onMutation(p, p, "VPN_A_OFFLINE_REVERT");
@@ -26,7 +27,7 @@ public final class VPNNode extends Node {
     }
 
     /* ── example hook you can call from your processing code ── */
-    protected void convertToProtected(Packet p) {
+    void convertToProtected(Packet p) {
         if (!online || p == null) return;
         p.setProtectedPacket(true);
         p.addTag("PROTECTED");
@@ -39,7 +40,7 @@ public final class VPNNode extends Node {
     private final Set<ProtectedPacket> issued =
             Collections.newSetFromMap(new IdentityHashMap<>());
 
-    public VPNNode(double x, double y, double w, double h) { super(x, y, w, h);  setNodeType(Type.VPN);}
+    public VPNNode(double x, double y, double w, double h) { super(x, y, w, h);  setNodeType(NodeType.VPN);}
 
     @Override public void onDelivered(Packet p) {
         // already protected? just pass it through unchanged

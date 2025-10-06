@@ -1,5 +1,7 @@
 package server.sim.model.packet;
 
+import shared.model.PacketShape;
+
 import java.util.Random;
 
 public final class ProtectedPacket extends Packet {
@@ -30,10 +32,10 @@ public final class ProtectedPacket extends Packet {
 
     }
 
-    /** Pick one messenger shape at random to mask true identity */
+    /** Pick one messenger packetShape at random to mask true identity */
     @Override
-    public Shape shape() {
-        return Shape.LOCK;
+    public PacketShape shape() {
+        return PacketShape.LOCK;
     }
 
     @Override

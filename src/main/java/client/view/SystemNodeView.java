@@ -5,12 +5,12 @@ import java.util.EnumMap;
 import java.util.Map;
 
 import server.sim.core.GameConfig;
-import server.sim.engine.physics.Vector2D;
-import server.sim.model.node.Node;
-import server.sim.snapshot.NodeSnapshot;
-import server.sim.snapshot.PortSnapshot;
+import shared.Vector2D;
+import shared.snapshot.NodeSnapshot;
+import shared.snapshot.PortSnapshot;
 import client.view.assets.Draw;
 import client.view.assets.ImageCache;
+import shared.model.NodeType;
 
 
 public class SystemNodeView implements View<NodeSnapshot> {
@@ -18,7 +18,7 @@ public class SystemNodeView implements View<NodeSnapshot> {
     private static final Color LED_BAD= new Color(220, 80, 80);
 
     private final ImageCache cache = ImageCache.get();
-    private final Map<Node.Type, Image> nodeImg = new EnumMap<>(Node.Type.class);
+    private final Map<NodeType, Image> nodeImg = new EnumMap<>(NodeType.class);
     private final Image portSquare = null;
     private final Image portTri    = null;
     private final Image portInf = cache.load("/ports/infinity.png");
@@ -28,13 +28,13 @@ public class SystemNodeView implements View<NodeSnapshot> {
 
     public SystemNodeView() {
         // map your concrete node types to images (add as many as you have)
-        nodeImg.put(Node.Type.BASIC,      null);
-        nodeImg.put(Node.Type.SPY,         cache.load("/nodes/SpyNodePic.jpg"));
-        nodeImg.put(Node.Type.SABOTEUR,    cache.load("/nodes/SaboteurNodePic.jpg"));
-        nodeImg.put(Node.Type.VPN,         cache.load("/nodes/VPNNodePic.jpg"));
-        nodeImg.put(Node.Type.ANTITROJAN,  cache.load("/nodes/AntiTrojanNodePic.jpg"));
-        nodeImg.put(Node.Type.DISTRIBUTOR, cache.load("/nodes/DistributorNodePic.jpg"));
-        nodeImg.put(Node.Type.MERGER,      cache.load("/nodes/MergerNodePic.jpg"));
+        nodeImg.put(NodeType.BASIC,      null);
+        nodeImg.put(NodeType.SPY,         cache.load("/nodes/SpyNodePic.jpg"));
+        nodeImg.put(NodeType.SABOTEUR,    cache.load("/nodes/SaboteurNodePic.jpg"));
+        nodeImg.put(NodeType.VPN,         cache.load("/nodes/VPNNodePic.jpg"));
+        nodeImg.put(NodeType.ANTITROJAN,  cache.load("/nodes/AntiTrojanNodePic.jpg"));
+        nodeImg.put(NodeType.DISTRIBUTOR, cache.load("/nodes/DistributorNodePic.jpg"));
+        nodeImg.put(NodeType.MERGER,      cache.load("/nodes/MergerNodePic.jpg"));
     }
 
     @Override public void render(Graphics2D g, NodeSnapshot node) {
@@ -45,9 +45,9 @@ public class SystemNodeView implements View<NodeSnapshot> {
         int w =  node.width();
         int h =  node.height();
 
-        Image img = nodeImg.get(node.type()); // requires NodeSnapshot.type()
+        Image img = nodeImg.get(node.nodeType()); // requires NodeSnapshot.nodeType()
         if (img != null) {
-            //System.out.println(node.type());;
+            //System.out.println(node.nodeType());;
             // center the sprite within node bounds (assuming art roughly matches box)
             Draw.imageCentered(g, img, x + w / 2.0, y + h / 2.0, w, h, 1f, 0);
         } else {

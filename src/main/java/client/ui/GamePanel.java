@@ -18,7 +18,7 @@
 //import server.sim.engine.loop.TimeController;
 //import server.sim.engine.world.World;
 //import server.sim.model.*;
-//import server.sim.engine.physics.Vector2D;
+//import shared.Vector2D;
 //import client.view.WorldView;
 //
 //public class GamePanel extends JPanel {
@@ -509,11 +509,11 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import server.sim.core.GameConfig;
-import shared.dto.WorldFrameDTO;
+
 import server.sim.core.save.SaveManager;
 import server.sim.core.save.SaveRecord;
 import server.sim.engine.world.WorldController;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.engine.world.level.Level;
 
 import server.sim.model.Connection;
@@ -522,7 +522,7 @@ import server.sim.engine.loop.TimeController;
 import server.sim.engine.world.*;
 import client.model.DraftConnection;
 import server.sim.model.Port;
-import server.sim.snapshot.WorldSnapshot;
+import shared.snapshot.WorldSnapshot;
 import client.view.WorldView;
 
 public final class GamePanel extends JPanel
@@ -535,7 +535,7 @@ public final class GamePanel extends JPanel
     // ─── just below “private DraftConnection draftConnection …” ───
     private Connection dragConn = null;   // wire whose bend is being dragged
     private int        dragBend = -1;     // index of that bend
-    private WorldFrameDTO lastFrame;
+    private WorldSnapshot lastFrame;
 
     public World getWorld() {
         return world;
@@ -1028,7 +1028,7 @@ public final class GamePanel extends JPanel
 
 
     // client-side
-    public void applyServerFrame(WorldFrameDTO f){
+    public void applyServerFrame(WorldSnapshot f){
         // Option A: build a lightweight client snapshot from DTO and call renderer.renderAll(g, snapshot)
         // Option B: store the DTO and let WorldView read it (thin read-only adapter)
         this.lastFrame = f;

@@ -1,17 +1,18 @@
 package server.sim.model.packet.messengerPacket.types;
 
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.packet.messengerPacket.MessengerPacket;
+import shared.model.PacketShape;
 
 public final class SquarePacket extends MessengerPacket {
     public SquarePacket(Vector2D spawn, double health, double radius) {
-        super(spawn, Shape.SQUARE, radius);  // 2 = health (aka size/strength)
+        super(spawn, PacketShape.SQUARE, radius);  // 2 = health (aka size/strength)
         this.health = health;
     }
 
     @Override public int getCoinValue() { return 2; }
 
-    @Override public Shape shape() { return Shape.SQUARE; }
+    @Override public PacketShape shape() { return PacketShape.SQUARE; }
 
     @Override public SquarePacket copy() {
         SquarePacket copy = new SquarePacket(pos.copy(), getHealth(), getRadius());

@@ -1,17 +1,15 @@
-package server.sim.snapshot;
+package shared.snapshot;
 
 import java.util.List;
 
-import server.sim.service.CoinService;
 
 /** Immutable snapshot of everything the renderer needs for one frame. */
 public record WorldSnapshot(
         List<NodeSnapshot> nodes,
         List<ConnectionSnapshot> connections,
-        List<PacketSnapshot>             packets,
-        HudReadOnly              hud,          // ← **READ-ONLY HUD COPY**
-        CoinService coinService,
-        boolean                  gameOver,
+        List<PacketSnapshot> packets,
+        HudReadOnly hud,          // ← **READ-ONLY HUD COPY**
+        boolean gameOver,
         boolean viewOnlyMode
 ) {
 

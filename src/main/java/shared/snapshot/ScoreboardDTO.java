@@ -1,5 +1,5 @@
 // shared/dto/ScoreboardDTO.java
-package shared.dto;
+package shared.snapshot;
 
 public final class ScoreboardDTO {
     public String topUser;         // username

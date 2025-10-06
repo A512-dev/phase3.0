@@ -1,5 +1,7 @@
 package server.sim.engine.physics;
 
+import shared.Vector2D;
+
 public interface PhysicsBody {
     Vector2D getPosition();
     Vector2D getVelocity();

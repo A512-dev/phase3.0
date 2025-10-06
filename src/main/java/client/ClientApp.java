@@ -2,184 +2,118 @@
 package client;
 
 import client.net.NetClient;
-import client.ui.ConnectPanel;
-import client.ui.GamePanel;
-import client.ui.LevelSelectPanel;
-import client.ui.MainMenu;
-import server.sim.core.save.SaveManager;
-import server.sim.engine.world.level.Level;
+import client.ui.*;
+import client.ui.helper.GameUi;
 
+import server.sim.core.save.SaveManager;   // transitional
+import server.sim.engine.world.level.Level; // transitional
+
+import shared.net.MessageType;
+import shared.ser.Json;
 
 import javax.swing.*;
-import java.awt.*;
 
 public final class ClientApp {
-
     private final JFrame frame = new JFrame("MyGame");
 
-    // null ⇒ offline mode
-    private NetClient net;
+    private NetClient net;                 // null if offline
+    private int levelInt = 1;
 
-    // The single game panel we use for both modes
-    private GamePanel gamePanel;
-
-    // Offline-only save/autosave
-    private SaveManager save;
-
-    // Track current level
-    private String levelId;
-    private int    levelInt;
+    // Phase-2 offline panel
+    private client.ui.GamePanel offlinePanel; // ← use your Phase-2 GamePanel class
+    private SaveManager save;                 // transitional
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new ClientApp().start());
     }
 
-    public void start() {
+    private void start() {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
-        showConnect();          // first screen: connect or play offline
+        showMainMenu();
         frame.setVisible(true);
     }
 
-    /* ---------------- screens ---------------- */
+    /* ──────────────── FLOW ──────────────── */
 
-    /** First screen: enter IP/port and connect OR skip to menu offline */
+    private void showMainMenu() {
+        var menu = new MainMenuPanel(
+                /* onStartOffline */ this::showLevelSelectOffline,
+                /* onStartOnline  */ this::showConnect,
+                /* onSettings     */ () -> { /* open your settings panel */ },
+                /* onExit         */ frame::dispose
+        );
+        GameUi.showSized(frame, menu);
+    }
+
+
     private void showConnect() {
-        frame.setContentPane(new ConnectPanel(
-                // onConnected:
-                c -> {
-                    this.net = c;          // remember we're online
-                    showPhase2Menu();
-                },
-                // onPlayOffline from connect screen:
-                this::showPhase2Menu
-        ));
-        packCenter();
+        var connect = new client.ui.ConnectPanel(
+                /* onConnected */ (NetClient c) -> { this.net = c; showLevelSelectOnline(); },
+                /* onOffline   */ this::showLevelSelectOffline
+        );
+        // use full game window size for visual consistency
+        GameUi.showSized(frame, connect);
     }
 
-    /** The Phase-2 MainMenu (Play / Settings). */
-    private void showPhase2Menu() {
-        frame.setContentPane(new MainMenu(
-                // onPlay
-                this::showLevelPicker,
-                // onSettings
-                this::showSettings
-        ));
-        packCenter();
+    private void showLevelSelectOffline() {
+        var lvl = new LevelSelectPanel(
+                (int chosen) -> { levelInt = chosen; startOffline(chosen); },
+                this::showMainMenu
+        );
+        GameUi.showSized(frame, lvl);
     }
 
-    private void showSettings() {
-        JOptionPane.showMessageDialog(frame, "Settings screen here…");
+    private void showLevelSelectOnline() {
+        var lvl = new LevelSelectPanel(
+                (int chosen) -> { levelInt = chosen; startOnline(chosen); },
+                () -> { this.net = null; showMainMenu(); }
+        );
+        GameUi.showSized(frame, lvl);
     }
 
-    /** Phase-2 LevelSelectPanel; branches to online/offline when a level is picked. */
-    private void showLevelPicker() {
-        frame.setContentPane(new LevelSelectPanel(
-                // Back → return to main menu
-                this::showPhase2Menu,
-                // onPickLevel(int level)
-                this::startGameForCurrentMode
-        ));
-        packCenter();
-    }
-
-    /** Decide online/offline at runtime: if net != null → online, else offline. */
-    private void startGameForCurrentMode(int chosenLevel) {
-        if (net != null) startOnline(chosenLevel);
-        else             startOffline(chosenLevel);
-    }
-
-    /* ---------------- OFFLINE (Phase-2 unchanged) ---------------- */
+    /* ───────────── OFFLINE (Phase-2 GamePanel) ───────────── */
 
     private void startOffline(int chosenLevel) {
-        // build level
-        this.levelInt = chosenLevel;
-        Level level   = new Level(chosenLevel);
-        this.levelId  = level.id();
+        // Phase-2 uses its own GamePanel that internally starts loop & renders snapshots.
+        Level level = new Level(chosenLevel);
+        save = new SaveManager(level.id()); // used by your panel if needed
 
-        // fresh SaveManager for this run
-        save = new SaveManager(level.id());
-
-        // Phase-2 GamePanel (it already accepts SaveManager)
-        gamePanel = new GamePanel(
-                this::restartOffline,   // restart callback
-                this::exitToMenu,       // exit to menu
+        offlinePanel = new client.ui.GamePanel(
+                this::restartOffline,
+                this::exitToMenu,
                 level,
                 save
         );
-
-        // start autosave cadence
-        save.start();
-
-        frame.setContentPane(gamePanel);
-        packCenter();
+        GameUi.showSized(frame, offlinePanel);
     }
 
     private void restartOffline() {
-        if (gamePanel != null) gamePanel.stop();
-        if (save != null) {
-            try { save.close(); } catch (Exception ignore) {}
-        }
+        if (offlinePanel != null) offlinePanel.stop();
+        if (save != null) { try { save.close(); } catch (Exception ignore) {} }
         startOffline(levelInt);
     }
 
     private void exitToMenu() {
-        if (gamePanel != null) gamePanel.stop();
-        if (save != null) {
-            try { save.clearAutosave(); save.close(); } catch (Exception ignore) {}
-        }
-        gamePanel = null;
-        save = null;
-        showPhase2Menu();
+        if (offlinePanel != null) offlinePanel.stop();
+        if (save != null) { try { save.clearAutosave(); save.close(); } catch (Exception ignore) {} }
+        offlinePanel = null; save = null;
+        showMainMenu();
     }
 
-    /* ---------------- ONLINE (thin client using the same GamePanel) ---------------- */
+    /* ───────────── ONLINE ───────────── */
 
     private void startOnline(int chosenLevel) {
-        // Remember level; create the same Level object for the client-side view
-        this.levelInt = chosenLevel;
-        Level level   = new Level(chosenLevel);
-        this.levelId  = level.id();
+        var onlinePanel = new client.ui.gamePanels.OnlineGamePanel(net, this::showMainMenu);
+        GameUi.showSized(frame, onlinePanel);
 
-        // Tell server which level we want (implement in NetClient)
-        // e.g. send JOIN { "level": chosenLevel }
-        try {
-            net.sendJoinWithLevel(chosenLevel);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(frame,
-                    "Failed to start online game (JOIN).\nStarting offline instead.",
-                    "Network", JOptionPane.WARNING_MESSAGE);
-            net = null;
-            startOffline(chosenLevel);
-            return;
-        }
-
-        // Start GamePanel without a SaveManager (GamePanel must already null-check it)
-        gamePanel = new GamePanel(
-                // For now reuse offline restart→ just bounce back to menu
-                this::showPhase2Menu,
-                this::showPhase2Menu,
-                level,
-                /* saveManager = */ null
+        net.send(
+                shared.net.MessageType.START_GAME,
+                shared.ser.Json.to(new Object(){ public final int level = chosenLevel; })
         );
 
-        // (Optional): if you want, subscribe GamePanel to frames from server here:
-        // net.onMessage((type, json) -> { if (type == MessageType.FRAME_UPDATE) {
-        //       WorldFrameDTO dto = Json.from(json, WorldFrameDTO.class);
-        //       SwingUtilities.invokeLater(() -> gamePanel.applyServerFrame(dto));
-        // }});
 
-        frame.setContentPane(gamePanel);
-        packCenter();
-    }
-
-    /* ---------------- helpers ---------------- */
-
-    private void packCenter() {
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.revalidate();
-        frame.repaint();
+        // Tell server we joined this level (ensures it starts streaming frames)
+        //net.send(MessageType.JOIN, Json.to(new Object() { public final int level = chosenLevel; }));
     }
 }

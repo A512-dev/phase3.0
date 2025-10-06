@@ -3,7 +3,7 @@ package client.view;
 
 import java.awt.*;
 
-import server.sim.snapshot.WorldSnapshot;
+import shared.snapshot.WorldSnapshot;
 
 /** Renders one immutable snapshot of the world. No references to live state. */
 public class WorldView {

@@ -1,24 +1,25 @@
 package server.sim.model.packet.confidentialPacket.types;
 
 import server.sim.core.GameConfig;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.packet.confidentialPacket.ConfidentialPacket;
+import shared.model.PacketShape;
 
 public final class ConfidentialLargePacket extends ConfidentialPacket {
 
-    public ConfidentialLargePacket(Vector2D spawn) {
-        super(spawn, GameConfig.CONFIDENTIAL_LARGE_PACKET_LIFE, GameConfig.CONFIDENTIAL_LARGE_PACKET_SIZE); // اندازه 6 واحد
+    public ConfidentialLargePacket(Vector2D spawn, double health) {
+        super(spawn, health, GameConfig.CONFIDENTIAL_LARGE_PACKET_SIZE); // اندازه 6 واحد
     }
 
     @Override
     public int getCoinValue() { return GameConfig.CONFIDENTIAL_LARGE_PACKET_COIN_VALUE; }
 
     @Override
-    public Shape shape() { return Shape.CONFIDENTIAL_L; }
+    public PacketShape shape() { return PacketShape.CONFIDENTIAL_L; }
 
     @Override
     public ConfidentialLargePacket copy() {
-        ConfidentialLargePacket cp = new ConfidentialLargePacket(pos.copy());
+        ConfidentialLargePacket cp = new ConfidentialLargePacket(pos.copy(), health);
         cp.setVelocity(vel.copy());
         cp.setAcceleration(getAcceleration().copy());
         return cp;

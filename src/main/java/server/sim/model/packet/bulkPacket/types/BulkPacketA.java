@@ -1,7 +1,8 @@
 package server.sim.model.packet.bulkPacket.types;
 
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.packet.bulkPacket.BulkPacket;
+import shared.model.PacketShape;
 
 public final class BulkPacketA extends BulkPacket {
 
@@ -11,7 +12,7 @@ public final class BulkPacketA extends BulkPacket {
     public int getCoinValue() { return 8; }        // طبق سند
 
     @Override
-    public Shape shape() { return Shape.BULK_A; }
+    public PacketShape shape() { return PacketShape.BULK_A; }
 
     @Override
     public BulkPacketA copy() {

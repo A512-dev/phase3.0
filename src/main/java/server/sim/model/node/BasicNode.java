@@ -3,6 +3,7 @@ package server.sim.model.node;
 import server.sim.core.GameConfig;
 import server.sim.model.Port;
 import server.sim.model.packet.Packet;
+import shared.model.NodeType;
 
 import java.util.Collection;
 import java.util.List;
@@ -16,7 +17,7 @@ public class BasicNode extends Node {
 
     public BasicNode(double x, double y, double w, double h) {
         super(x, y, w, h);
-        setNodeType(Type.BASIC);
+        setNodeType(NodeType.BASIC);
     }
 
     public void setBaseLeft(boolean b){ baseLeft = b; }

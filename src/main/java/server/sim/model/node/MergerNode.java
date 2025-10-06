@@ -1,11 +1,12 @@
 package server.sim.model.node;
 
 import client.audio.AudioManager;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.Port;
 import server.sim.model.packet.*;
 import server.sim.model.packet.bulkPacket.types.BulkPacketA;
 import server.sim.model.packet.messengerPacket.types.InfinityPacket;
+import shared.model.NodeType;
 
 import java.util.*;
 import java.util.List;
@@ -17,7 +18,10 @@ public final class MergerNode extends Node {
     private static final int   NEEDED_BITS = 6;
     private static final double RADIUS     = 60;
 
-    public MergerNode(double x, double y, double w, double h) { super(x, y, w, h); setNodeType(Type.MERGER);}
+    public MergerNode(double x, double y, double w, double h) {
+        super(x, y, w, h);
+        setNodeType(NodeType.MERGER);
+    }
 
     @Override
     public void onLost(Packet p) {

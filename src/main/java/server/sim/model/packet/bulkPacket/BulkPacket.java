@@ -1,8 +1,9 @@
 package server.sim.model.packet.bulkPacket;
 
 import server.sim.core.GameConfig;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.packet.Packet;
+import shared.model.PacketShape;
 
 import java.util.UUID;
 
@@ -32,7 +33,7 @@ public class BulkPacket extends Packet {
 
     /** آیکون عمومی برای حجیم‌ها؛ گونه‌ها شکل دقیق را override می‌کنند. */
     @Override
-    public Shape shape() { return Shape.HEXAGON; }
+    public PacketShape shape() { return PacketShape.HEXAGON; }
 
     /* قوانین حرکتی خاص (صاف=ثابت، انحنا=شتاب، drift و …) را در MovementSystem اعمال کن. */
 }

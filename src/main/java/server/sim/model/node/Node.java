@@ -1,7 +1,7 @@
 package server.sim.model.node;
 
 import server.sim.engine.debug.LossDebug;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.PacketEventListener;
 import server.sim.model.Port;
 import server.sim.model.packet.Packet;
@@ -10,13 +10,35 @@ import server.sim.model.packet.TrojanPacket;
 import server.sim.model.packet.bulkPacket.BulkPacket;
 import server.sim.model.packet.messengerPacket.types.SquarePacket;
 import server.sim.model.packet.messengerPacket.types.TrianglePacket;
-import server.sim.snapshot.NodeSnapshot;
+import shared.snapshot.NodeSnapshot;
+import shared.model.NodeType;
+import shared.model.PortDirection;
+import shared.model.PortType;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 /** Core data + API every network node shares. */
 public abstract class Node implements PacketEventListener {
+    /** Factory – called by the World when it builds the frame snapshot */
+    public static NodeSnapshot of(Node n) {
+        return new NodeSnapshot(
+                n.getPosition().copy(),
+                (int) n.getWidth(),
+                (int) n.getHeight(),
+                n.getPorts().stream()
+                        .map(Port::of)
+                        .toList(),
+                (n.getNodeType()),          // ✅ model → shared enum
+                n.isAllConnected(),
+                n.getQueuedPackets() == null
+                        ? List.of()
+                        : n.getQueuedPackets().stream()         // ✅ live → snapshot
+                        .map(Packet::of)
+                        .toList()
+        );
+    }
+
     public boolean isOnline() {
         return online;
     }
@@ -25,15 +47,15 @@ public abstract class Node implements PacketEventListener {
     /** Toggle this Node on/off (when off, it won't do new packets). */
     public void setOnline(boolean v) { this.online = v; }
 
-    public Type getNodeType() {
+    public NodeType getNodeType() {
         return nodeType;
     }
 
-    public void setNodeType(Type nodeType) {
+    public void setNodeType(NodeType nodeType) {
         this.nodeType = nodeType;
     }
 
-    Type nodeType;
+    NodeType nodeType;
 
     /* ── geometry ─────────────────────────────────────────── */
     protected final Vector2D position;     // top-left corner
@@ -81,16 +103,16 @@ public abstract class Node implements PacketEventListener {
 
 
 
-    public void addInputPort(Port.PortType t, Vector2D relPos){
+    public void addInputPort(PortType t, Vector2D relPos){
         Vector2D abs = new Vector2D(position.x() + relPos.x(),
                 position.y() + relPos.y());
-        Port p = new Port(this, t, abs, Port.PortDirection.INPUT);
+        Port p = new Port(this, t, abs, PortDirection.INPUT);
         inputs.add(p);
     }
-    public void addOutputPort(Port.PortType t, Vector2D relPos){
+    public void addOutputPort(PortType t, Vector2D relPos){
         Vector2D abs = new Vector2D(position.x() + relPos.x(),
                 position.y() + relPos.y());
-        Port p = new Port(this, t, abs, Port.PortDirection.OUTPUT);
+        Port p = new Port(this, t, abs, PortDirection.OUTPUT);
         outputs.add(p);
     }
 
@@ -123,7 +145,7 @@ public abstract class Node implements PacketEventListener {
             Packet p = queue.peekFirst();
             if (p instanceof SquarePacket) {
                 List<Port> squarePorts = outputs.stream()
-                        .filter(port -> port.getType() == Port.PortType.SQUARE)
+                        .filter(port -> port.getType() == PortType.SQUARE)
                         .collect(Collectors.toList());
 
                 if (squarePorts.size()>0) {
@@ -141,7 +163,7 @@ public abstract class Node implements PacketEventListener {
             }
             if (p instanceof TrianglePacket) {
                 List<Port> trianglePorts = outputs.stream()
-                        .filter(port -> port.getType() == Port.PortType.TRIANGLE)
+                        .filter(port -> port.getType() == PortType.TRIANGLE)
                         .collect(Collectors.toList());
 
                 if (trianglePorts.size()>0) {
@@ -160,7 +182,7 @@ public abstract class Node implements PacketEventListener {
             if (p instanceof TrojanPacket) {
                 if (((TrojanPacket) p).getOriginalPacket() instanceof SquarePacket) {
                     List<Port> trianglePorts = outputs.stream()
-                            .filter(port -> port.getType() == Port.PortType.TRIANGLE)
+                            .filter(port -> port.getType() == PortType.TRIANGLE)
                             .collect(Collectors.toList());
 
                     if (trianglePorts.size()>0) {
@@ -178,7 +200,7 @@ public abstract class Node implements PacketEventListener {
                 }
                 else if (((TrojanPacket) p).getOriginalPacket() instanceof TrianglePacket) {
                     List<Port> squarePorts = outputs.stream()
-                            .filter(port -> port.getType() == Port.PortType.SQUARE)
+                            .filter(port -> port.getType() == PortType.SQUARE)
                             .collect(Collectors.toList());
 
                     if (squarePorts.size()>0) {
@@ -309,7 +331,7 @@ public abstract class Node implements PacketEventListener {
                     rel.x(), rel.y());
         }
     }
-    public NodeSnapshot toSnapshot() { return NodeSnapshot.of(this); }
+    public NodeSnapshot toSnapshot() { return of(this); }
 
 
     protected boolean active = true;
@@ -320,9 +342,6 @@ public abstract class Node implements PacketEventListener {
         this.active = active;
     };
 
-    public enum Type {
-        BASIC, SPY, VPN, SABOTEUR, MERGER, DISTRIBUTOR, ANTITROJAN
-    }
 
     protected PacketEventListener getPacketEventListener() { return this.packetEventListener; }
 }

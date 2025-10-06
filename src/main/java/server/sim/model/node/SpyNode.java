@@ -6,6 +6,7 @@ import server.sim.model.Connection;
 import server.sim.model.PacketEventListener;
 import server.sim.model.Port;
 import server.sim.model.packet.Packet;
+import shared.model.NodeType;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,7 +34,7 @@ public final class SpyNode extends Node {
     public SpyNode(double x, double y, double width, double height) {
         super(x, y, width, height);
         REGISTRY.add(this);
-        setNodeType(Type.SPY);
+        setNodeType(NodeType.SPY);
     }
 
     /** Link a set of spies into one teleportation cluster. */

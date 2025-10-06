@@ -1,6 +1,6 @@
 package server.sim.core.save;
 
-import server.sim.snapshot.WorldSnapshot;
+import shared.snapshot.WorldSnapshot;
 
 // SaveRecord.java (sketch)
 public final class SaveRecord {

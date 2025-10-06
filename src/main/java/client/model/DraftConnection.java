@@ -1,6 +1,6 @@
 package client.model;
 
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.Port;
 
 import java.util.ArrayList;

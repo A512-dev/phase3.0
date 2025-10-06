@@ -1,6 +1,6 @@
 package client.core;
 
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 
 import java.util.List;
 

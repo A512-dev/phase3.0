@@ -2,6 +2,7 @@ package server.sim.engine.physics;
 
 import server.sim.model.Connection;
 import server.sim.model.packet.Packet;
+import shared.Vector2D;
 
 import java.util.*;
 

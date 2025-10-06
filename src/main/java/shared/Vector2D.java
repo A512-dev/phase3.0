@@ -1,4 +1,4 @@
-package server.sim.engine.physics;
+package shared;
 
 import java.util.Objects;
 

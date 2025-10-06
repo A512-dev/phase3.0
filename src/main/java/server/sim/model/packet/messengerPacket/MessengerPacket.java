@@ -1,11 +1,12 @@
 package server.sim.model.packet.messengerPacket;
 
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.packet.Packet;
+import shared.model.PacketShape;
 
 public class MessengerPacket extends Packet {
-    private final Shape packetShape;
-    public MessengerPacket(Vector2D spawn, Shape packetShape, double radius) {
+    private final PacketShape packetShape;
+    public MessengerPacket(Vector2D spawn, PacketShape packetShape, double radius) {
         super(spawn, 1, radius);
         this.packetShape = packetShape;
     }
@@ -17,7 +18,7 @@ public class MessengerPacket extends Packet {
 
 
     @Override
-    public Shape shape() {
+    public PacketShape shape() {
         return packetShape;
     }
     @Override public MessengerPacket copy(){

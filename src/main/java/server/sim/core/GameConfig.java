@@ -2,7 +2,7 @@ package server.sim.core;
 
 
 
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 
 import java.awt.*;
 
@@ -76,6 +76,7 @@ public final class GameConfig {
     public static final double BULK_A_ACCEL_CURVE = 5;
     public static final double BULK_A_VMAX_CURVE = 100;
     public static final double SPEED_OF_TROJAN_PACKET = SPEED_OF_SQUARE_PACKET_TRIANGLE_PORT / 1.5;
+
 
     public static double bulkPacketSize = 10;
 
@@ -165,6 +166,11 @@ public final class GameConfig {
     public static Dimension level3Size = new Dimension(800, 600);
     public static Dimension level4Size = new Dimension(1000, 650);
     public static Dimension level5Size = new Dimension(800, 600);
+
+
+    public static final int WINDOW_WIDTH = level1Size.width;
+    public static final int WINDOW_HEIGHT = level1Size.height;
+
 
 
 

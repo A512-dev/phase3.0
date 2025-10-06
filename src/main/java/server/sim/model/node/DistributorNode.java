@@ -7,6 +7,7 @@ import server.sim.model.packet.*;
 import server.sim.model.packet.bulkPacket.types.BulkPacketA;
 import server.sim.model.packet.bulkPacket.types.BulkPacketB;
 import server.sim.model.packet.messengerPacket.types.InfinityPacket;
+import shared.model.NodeType;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -17,7 +18,10 @@ import java.util.List;
 public final class DistributorNode extends Node {
     private final Deque<Packet> outbox = new ArrayDeque<>();
 
-    public DistributorNode(double x, double y, double w, double h) { super(x, y, w, h); setNodeType(Type.DISTRIBUTOR);}
+    public DistributorNode(double x, double y, double w, double h) {
+        super(x, y, w, h);
+        setNodeType(NodeType.DISTRIBUTOR);
+    }
 
     @Override
     public void onLost(Packet p) {

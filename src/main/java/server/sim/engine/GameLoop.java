@@ -1,7 +1,7 @@
 package server.sim.engine;
 
 import server.sim.engine.world.WorldController;
-import server.sim.snapshot.WorldSnapshot;
+import shared.snapshot.WorldSnapshot;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;

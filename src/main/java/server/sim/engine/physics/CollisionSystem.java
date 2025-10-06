@@ -1,6 +1,7 @@
 package server.sim.engine.physics;
 
 import server.sim.model.packet.Packet;
+import shared.Vector2D;
 
 import java.util.*;
 import java.util.function.Consumer;

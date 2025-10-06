@@ -23,5 +23,6 @@ final class ClientSession {
 
     void send(Envelope env){
         out.println(Json.to(env));
+        out.flush();
     }
 }

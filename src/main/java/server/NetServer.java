@@ -3,6 +3,7 @@ package server;
 
 import shared.net.*;
 import shared.ser.Json;
+import shared.snapshot.StartGameDTO;
 
 import java.io.*;
 import java.net.*;
@@ -57,9 +58,10 @@ public final class NetServer {
     }
 
     private void onEnvelope(ClientSession s, Envelope env){
+        System.out.println("RX nodeType="+ env.type + "  payload="+ env.payload);
         switch (env.type) {
-            case START_GAME -> {
-                int level = Json.from(env.payload, shared.dto.StartGameDTO.class).level;
+            case START_GAME, JOIN -> {
+                int level = Json.from(env.payload, StartGameDTO.class).level;
                 startGameFor(s, level);
             }
             case INPUT_COMMAND -> {
@@ -78,9 +80,10 @@ public final class NetServer {
 
         ServerGameLoop g = new ServerGameLoop(level, frameDto -> {
             // send frames only to THIS client
-            s.send(new Envelope(MessageType.FRAME_UPDATE, Json.to(frameDto)));
+            s.send(new Envelope(MessageType.FRAME, Json.to(frameDto)));
         });
         games.put(s.id(), g);
+        System.out.println("Starting game loop for session " + s.id() + " level=" + level);
         g.start();
     }
 }

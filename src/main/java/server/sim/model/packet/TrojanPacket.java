@@ -1,6 +1,7 @@
 package server.sim.model.packet;
 
 import server.sim.core.GameConfig;
+import shared.model.PacketShape;
 
 public class TrojanPacket extends Packet{
     private final Packet original;   // 🔁 original version before corruption
@@ -41,8 +42,8 @@ public class TrojanPacket extends Packet{
     }
 
     @Override
-    public Shape shape() {
-        return Shape.TROJAN;  // visually distinct
+    public PacketShape shape() {
+        return PacketShape.TROJAN;  // visually distinct
     }
 
     @Override

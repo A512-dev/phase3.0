@@ -2,7 +2,7 @@ package server.sim.engine.modelUpdates;
 
 import server.sim.core.GameConfig;
 import server.sim.engine.physics.MovementStrategy;
-import server.sim.engine.physics.Vector2D;
+import shared.Vector2D;
 import server.sim.model.Connection;
 
 import server.sim.model.packet.Packet;
@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 
-import static server.sim.engine.physics.Vector2D.distPointToSegment;
+import static shared.Vector2D.distPointToSegment;
 
 public final class MovementSystem implements MovementStrategy {
     final double base = server.sim.core.GameConfig.SPEED_OF_CONFIDENTIAL_SMALL_PACKET;
@@ -334,7 +334,7 @@ public final class MovementSystem implements MovementStrategy {
                 // If we are not significantly backward anymore (vPar >= ~0), but not rolling forward either,
                 // give a small forward push and gently damp sideways motion so it locks back to the path.
                 if (vPar >= -1.0 && vPar < GameConfig.FORWARD_RECOVER_MIN_SPEED) {
-                    double cap = baseForwardCap(pkt, bulkFlatSpeed, bulkBSpeed); // per-type sensible cap
+                    double cap = baseForwardCap(pkt, bulkFlatSpeed, bulkBSpeed); // per-nodeType sensible cap
 
                     // accelerate forward along tangent
                     double newVPar = Math.min(cap, vPar + GameConfig.FORWARD_RECOVER_ACCEL * dt);
@@ -444,7 +444,7 @@ public final class MovementSystem implements MovementStrategy {
         }
         return pts.length - 2; // final segment
     }
-    /** Cap the “recover” forward speed per packet type. */
+    /** Cap the “recover” forward speed per packet nodeType. */
     private double baseForwardCap(Packet pkt, double bulkFlatSpeed, double bulkBSpeed) {
         if (pkt instanceof server.sim.model.packet.confidentialPacket.types.ConfidentialSmallPacket)
             return GameConfig.SPEED_OF_CONFIDENTIAL_SMALL_PACKET;

@@ -2,7 +2,7 @@
     package server.sim.model;
 
     import server.sim.core.GameConfig;
-    import server.sim.engine.physics.Vector2D;
+    import shared.Vector2D;
     import server.sim.model.node.Node;
 
     import server.sim.model.packet.Packet;
@@ -15,6 +15,7 @@
     import server.sim.model.packet.messengerPacket.types.InfinityPacket;
     import server.sim.model.packet.messengerPacket.types.SquarePacket;
     import server.sim.model.packet.messengerPacket.types.TrianglePacket;
+    import shared.model.PortType;
 
     import java.util.*;
 
@@ -189,24 +190,24 @@
             double   v0  = Math.max(p.speed(), 30.0);   // 30px/s حداقل
 
             if (p instanceof SquarePacket) {
-                if (getFrom().getType() == Port.PortType.SQUARE) {
+                if (getFrom().getType() == PortType.SQUARE) {
                     v0 = GameConfig.SPEED_OF_SQUARE_PACKET_SQUARE_PORT;
                     p.setVelocity(dir.multiplied(v0));
                     p.setAcceleration(new Vector2D());
                 }
-                else if (getFrom().getType() == Port.PortType.TRIANGLE) {
+                else if (getFrom().getType() == PortType.TRIANGLE) {
                     v0 = GameConfig.SPEED_OF_SQUARE_PACKET_TRIANGLE_PORT;
                     p.setVelocity(dir.multiplied(v0));
                     p.setAcceleration(new Vector2D());
                 }
             }
             else if (p instanceof TrianglePacket) {
-                if (getFrom().getType() == Port.PortType.TRIANGLE) {
+                if (getFrom().getType() == PortType.TRIANGLE) {
                     v0 = GameConfig.SPEED_OF_TRIANGLE_PACKET_TRIANGLE_PORT;
                     p.setVelocity(dir.multiplied(v0));
                     p.setAcceleration(new Vector2D());
                 }
-                else if (getFrom().getType() == Port.PortType.SQUARE) {
+                else if (getFrom().getType() == PortType.SQUARE) {
                     v0 = GameConfig.SPEED_OF_TRIANGLE_PACKET_SQUARE_PORT;
                     p.setVelocity(dir.multiplied(v0));
                     double a0 = GameConfig.ACCEL_OF_TRIANGLE_PACKET_SQUARE_PORT;
@@ -216,7 +217,7 @@
             else if (p instanceof InfinityPacket) {
                 // TODO: 8/13/2025 infinity packet compatible?
 
-                boolean compat = (getFrom().getType() == Port.PortType.INFINITY);
+                boolean compat = (getFrom().getType() == PortType.INFINITY);
 
                 double vLaunch  = compat ? GameConfig.INF_LAUNCH_SPEED : GameConfig.INF_MIN_SPEED;
                 double aMag     = compat ? GameConfig.INF_COMPAT_ACCEL : -GameConfig.INF_INCOMPAT_DECEL;
@@ -235,24 +236,24 @@
             }
             else if (p instanceof ProtectedPacket) {
                 if (((ProtectedPacket) p).getMovementType() == ProtectedPacket.MovementType.SQUARE) {
-                    if (getFrom().getType() == Port.PortType.SQUARE) {
+                    if (getFrom().getType() == PortType.SQUARE) {
                         v0 = GameConfig.SPEED_OF_SQUARE_PACKET_SQUARE_PORT;
                         p.setVelocity(dir.multiplied(v0));
                         p.setAcceleration(new Vector2D());
                     }
-                    else if (getFrom().getType() == Port.PortType.TRIANGLE) {
+                    else if (getFrom().getType() == PortType.TRIANGLE) {
                         v0 = GameConfig.SPEED_OF_SQUARE_PACKET_TRIANGLE_PORT;
                         p.setVelocity(dir.multiplied(v0));
                         p.setAcceleration(new Vector2D());
                     }
                 }
                 else if (((ProtectedPacket) p).getMovementType() == ProtectedPacket.MovementType.TRIANGLE) {
-                    if (getFrom().getType() == Port.PortType.TRIANGLE) {
+                    if (getFrom().getType() == PortType.TRIANGLE) {
                         v0 = GameConfig.SPEED_OF_TRIANGLE_PACKET_TRIANGLE_PORT;
                         p.setVelocity(dir.multiplied(v0));
                         p.setAcceleration(new Vector2D());
                     }
-                    else if (getFrom().getType() == Port.PortType.SQUARE) {
+                    else if (getFrom().getType() == PortType.SQUARE) {
                         v0 = GameConfig.SPEED_OF_TRIANGLE_PACKET_SQUARE_PORT;
                         p.setVelocity(dir.multiplied(v0));
                         double a0 = GameConfig.ACCEL_OF_TRIANGLE_PACKET_SQUARE_PORT;
@@ -263,7 +264,7 @@
 //                    Vector2D d01 = path.get(1).subtracted(path.get(0));
 //                    Vector2D dir = d01.lengthSq() > 1e-9 ? d01.normalized() : new Vector2D(1,0);
 
-                    boolean compat = (getFrom().getType() == Port.PortType.INFINITY);
+                    boolean compat = (getFrom().getType() == PortType.INFINITY);
                     v0 = compat ? GameConfig.INF_LAUNCH_SPEED : GameConfig.INF_MIN_SPEED;
 
                     p.setVelocity(dir.multiplied(v0));     // مهم: هم‌جهتِ سیم
