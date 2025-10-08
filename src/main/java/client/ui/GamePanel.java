@@ -735,9 +735,9 @@ public final class GamePanel extends JPanel
         }
 
         /*  overlays  */
-        if (snap != null && snap.isGameOver()) {
+        if (snap != null && snap.gameOver()) {
             drawGameOverOverlay(g);
-            if (onGameOverCb != null && !snap.isViewOnly()) onGameOverCb.run();
+            if (onGameOverCb != null && !snap.viewOnlyMode()) onGameOverCb.run();
         }
         if (world.getTimeController().isPaused() && !shopOpen) {
             drawPauseOverlay(g);

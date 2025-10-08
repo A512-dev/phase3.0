@@ -61,8 +61,8 @@ public final class NetServer {
         System.out.println("RX nodeType="+ env.type + "  payload="+ env.payload);
         switch (env.type) {
             case START_GAME, JOIN -> {
-                int level = Json.from(env.payload, StartGameDTO.class).level;
-                startGameFor(s, level);
+                StartGameDTO dto = Json.from(env.payload, StartGameDTO.class);
+                startGameFor(s, dto.level());
             }
             case INPUT_COMMAND -> {
                 ClientCommand cmd = Json.from(env.payload, ClientCommand.class);
@@ -79,11 +79,12 @@ public final class NetServer {
         if (old != null) old.stop();
 
         ServerGameLoop g = new ServerGameLoop(level, frameDto -> {
+            //System.out.println("Starting game loop for session " + s.id() + " level=" + level);
             // send frames only to THIS client
             s.send(new Envelope(MessageType.FRAME, Json.to(frameDto)));
         });
         games.put(s.id(), g);
-        System.out.println("Starting game loop for session " + s.id() + " level=" + level);
+
         g.start();
     }
 }

@@ -324,6 +324,10 @@ public class World {
     public void addPacket(Packet p)             { packets.add(p); }
     public void addNode(Node n)           { nodes.add(n); }
     public void addConnection(Connection c)      {
+        System.out.println("[WORLD] addConnection " + c +
+                " bends=" + c.getBends().size());
+
+
         // Enforce exclusivity on both ends
         disconnectPort(c.getFrom());
         disconnectPort(c.getTo());
@@ -530,8 +534,8 @@ public class World {
             connections.add(wire);
         }
 
-        gameOver     = snap.isGameOver();
-        viewOnlyMode = snap.isViewOnly();
+        gameOver     = snap.gameOver();
+        viewOnlyMode = snap.viewOnlyMode();
     }
     private static final double EPS = 1e-3; // or a pixel, e.g. 0.5–1.0
 

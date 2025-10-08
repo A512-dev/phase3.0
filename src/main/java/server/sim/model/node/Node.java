@@ -20,6 +20,11 @@ import java.util.stream.Collectors;
 
 /** Core data + API every network node shares. */
 public abstract class Node implements PacketEventListener {
+
+    boolean baseLeft = false;
+    public void setBaseLeft(boolean b){ baseLeft = b; }
+    public boolean isBaseLeft()       { return baseLeft; }
+
     /** Factory – called by the World when it builds the frame snapshot */
     public static NodeSnapshot of(Node n) {
         return new NodeSnapshot(
@@ -31,6 +36,7 @@ public abstract class Node implements PacketEventListener {
                         .toList(),
                 (n.getNodeType()),          // ✅ model → shared enum
                 n.isAllConnected(),
+                n.isBaseLeft(),
                 n.getQueuedPackets() == null
                         ? List.of()
                         : n.getQueuedPackets().stream()         // ✅ live → snapshot

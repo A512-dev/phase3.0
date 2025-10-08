@@ -10,6 +10,7 @@ import server.sim.engine.world.level.Level; // transitional
 
 import shared.net.MessageType;
 import shared.ser.Json;
+import shared.snapshot.StartGameDTO;
 
 import javax.swing.*;
 
@@ -108,8 +109,8 @@ public final class ClientApp {
         GameUi.showSized(frame, onlinePanel);
 
         net.send(
-                shared.net.MessageType.START_GAME,
-                shared.ser.Json.to(new Object(){ public final int level = chosenLevel; })
+                MessageType.START_GAME,
+                Json.to(new StartGameDTO(chosenLevel))
         );
 
 

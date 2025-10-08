@@ -12,8 +12,4 @@ public record WorldSnapshot(
         boolean gameOver,
         boolean viewOnlyMode
 ) {
-
-
-    public boolean isGameOver() { return gameOver; }
-    public boolean isViewOnly() { return viewOnlyMode; }
 }

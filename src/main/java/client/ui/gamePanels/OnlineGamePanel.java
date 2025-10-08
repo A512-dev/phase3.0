@@ -14,6 +14,9 @@ import java.awt.event.*;
 /** Thin viewer for ONLINE mode. */
 public final class OnlineGamePanel extends BaseGamePanel {
 
+    private final client.view.WorldView renderer = new client.view.WorldView(); // reuse
+
+
     private final NetClient net;
     private volatile WorldSnapshot frame; // last server frame
 
@@ -37,8 +40,11 @@ public final class OnlineGamePanel extends BaseGamePanel {
             System.out.println("Client got: " + type);
 
             if (type == MessageType.FRAME) {
-                WorldSnapshot dto = Json.from(payload, WorldSnapshot.class);
-                this.frame = dto;
+                //System.out.println("[CLIENT] FRAME received; assigning to field");
+
+
+
+                this.frame = shared.ser.Json.from(payload, WorldSnapshot.class);
                 SwingUtilities.invokeLater(this::repaint);
             }
         });
@@ -52,41 +58,64 @@ public final class OnlineGamePanel extends BaseGamePanel {
             g2.setColor(Color.GRAY);
             g2.drawString("Waiting for server frames…", 20, 30);
         } else {
-            // TODO: renderer.renderAll(g2, adapter.fromDTO(frame))
-            g2.setColor(Color.WHITE);
-            g2.drawString("t=" + frame.hud().gameTimeSec() + "s", 20, 30);
-            if (frame.isGameOver()) g2.drawString("GAME OVER", 20, 50);
+            renderer.renderAll(g2, frame);
         }
     }
 
-    @Override protected boolean isGameOver() { return frame != null && frame.isGameOver(); }
-    @Override protected boolean isViewOnly() { return frame != null && frame.isViewOnly(); }
+    @Override protected boolean isGameOver() { return frame != null && frame.gameOver(); }
+    @Override protected boolean isViewOnly() { return frame != null && frame.viewOnlyMode(); }
 
     /* ---------------- input -> InputCommand -> server ---------------- */
 
+// OnlineGamePanel.java  – inside initInputListeners()
+
     private void initInputListeners() {
         addMouseListener(new MouseAdapter() {
-            @Override public void mousePressed(MouseEvent e) { sendMouse("MOUSE_DOWN", e); }
-            @Override public void mouseReleased(MouseEvent e) { sendMouse("MOUSE_UP", e); }
+            @Override public void mousePressed(MouseEvent e) {
+                System.out.println("[CLIENT] mousePressed btn="+e.getButton());
+                if (SwingUtilities.isLeftMouseButton(e))  sendMouse("MOUSE_DOWN_LEFT", e);
+                else if (SwingUtilities.isRightMouseButton(e)) sendMouse("MOUSE_DOWN_RIGHT", e);
+            }
+            @Override public void mouseReleased(MouseEvent e) {
+                System.out.println("[CLIENT] mouseReleased btn="+e.getButton());
+
+                // we only need where you released for connecting; button not required
+                sendMouse("MOUSE_UP", e);
+            }
         });
         addMouseMotionListener(new MouseMotionAdapter() {
-            @Override public void mouseMoved(MouseEvent e) { sendMouse("MOUSE_MOVE", e); }
-            @Override public void mouseDragged(MouseEvent e) { sendMouse("MOUSE_DRAG", e); }
+            @Override public void mouseMoved(MouseEvent e)  { sendMouse("MOUSE_MOVE", e); }
+            @Override public void mouseDragged(MouseEvent e){ sendMouse("MOUSE_DRAG", e); }
         });
         addKeyListener(new KeyAdapter() {
-            @Override public void keyPressed(KeyEvent e) { sendKey("KEY_DOWN", e); }
-            @Override public void keyReleased(KeyEvent e) { sendKey("KEY_UP", e); }
+            @Override public void keyPressed(KeyEvent e) {
+                System.out.println("[CLIENT] keyPressed " + e.getKeyCode());
+                sendKey("KEY_DOWN", e);
+            }
+            @Override public void keyReleased(KeyEvent e) {
+                System.out.println("[CLIENT] keyReleased " + e.getKeyCode());
+                sendKey("KEY_UP", e);
+            }
         });
     }
 
 
+    // client.ui.gamePanels.OnlineGamePanel
     private void sendMouse(String kind, MouseEvent e) {
-        ClientCommand cmd = ClientCommand.mouse(kind, e.getX(), e.getY());
+        // Prefer a factory that captures button & modifiers; if you don't have one, add it.
+        ClientCommand cmd = ClientCommand.mouse(kind, e.getX(), e.getY(),
+                e.getButton(),
+                e.isShiftDown(),
+                e.isControlDown(),
+                e.isAltDown());
         net.send(MessageType.INPUT_COMMAND, Json.to(cmd));
     }
 
+
+
     private void sendKey(String kind, KeyEvent e) {
         ClientCommand cmd = ClientCommand.key(kind, e.getKeyCode());
+        System.out.printf("[CLIENT->NET] %s keyCode=%d%n", kind, e.getKeyCode());
         net.send(MessageType.INPUT_COMMAND, Json.to(cmd));
     }
 }

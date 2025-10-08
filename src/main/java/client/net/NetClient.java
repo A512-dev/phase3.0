@@ -49,7 +49,10 @@ public final class NetClient {
             String line;
             while (running.get() && (line = in.readLine()) != null) {
                 try {
+
                     Envelope env = Json.from(line, Envelope.class);
+                    //System.out.println("[CLIENT] RX " + env.type + " (" + (env.payload==null?0:env.payload.length()) + " bytes)");
+
                     if (onMsg != null) onMsg.accept(env.type, env.payload);
                 } catch (Exception ex) {
                     System.err.println("⚠ Failed to parse message: " + line);
@@ -74,6 +77,10 @@ public final class NetClient {
         if (out == null) return;
         Envelope env = new Envelope(type, payloadJson);
         out.println(Json.to(env));
+        // NetClient.send(...)
+        System.out.printf("[NET SEND] %s %s%n", type, payloadJson);
+
+
     }
 
     /** Gracefully close the socket and stop the read thread. */

@@ -1,7 +1,6 @@
 // server/ServerGameLoop.java
 package server;
 
-
 import shared.net.ClientCommand;
 import server.sim.engine.GameLoop;
 import server.sim.engine.world.World;
@@ -18,35 +17,39 @@ final class ServerGameLoop {
     private final GameLoop loop;
     private final ConcurrentLinkedQueue<ClientCommand> inputs = new ConcurrentLinkedQueue<>();
     private final Consumer<WorldSnapshot> onFrame;
+
+    // if you use this elsewhere you can keep it; otherwise not required
+    @SuppressWarnings("FieldCanBeLocal")
     private volatile boolean running;
+
+    // 🔌 hook up your input applier if you added it
+    private final ServerInputApplier applier;
 
     ServerGameLoop(int level, Consumer<WorldSnapshot> onFrame){
         this.onFrame = onFrame;
         this.world = new World(new Level(level));
         this.ctrl  = new WorldController(world);
+        this.applier = new ServerInputApplier(world);
+
         this.loop  = new GameLoop(ctrl, snap -> {
-            // 1) Apply any queued inputs for THIS tick/frame on the simulation thread
-            applyInputs();
-
-            // 2) Take a fresh snapshot AFTER inputs are applied
-            WorldSnapshot fresh = ctrl.snapshot();
-
-            // 3) Send a DTO built from that fresh snapshot
-            System.out.println("Tick -> building frame...");
-            try {
-                onFrame.accept(fresh);
-            } catch (Exception ex) {
-                ex.printStackTrace();                   // <— SEE THE REAL CAUSE IF ANY
-            }
+            applyInputs();                          // run on sim thread
+            WorldSnapshot fresh = ctrl.snapshot();  // snapshot after inputs
+            //System.out.println("[SERVER] Tick -> building frame... hud.t=" + fresh.hud().gameTimeSec());
+            onFrame.accept(fresh);
         });
     }
 
-    void start(){
+    void start() {
         running = true;
-        loop.start();                       // <-- MISSING
+        loop.start();
         new Thread(loop, "ServerLoop").start();
     }
-    void stop(){ running = false; loop.stop(); }
+
+    // ✅ add THIS method so NetServer can call old.stop()
+    void stop() {
+        running = false;
+        loop.stop();            // your GameLoop.stop() should signal its run() to end
+    }
 
     void applyInput(String sessionId, ClientCommand cmd){
         inputs.add(cmd);
@@ -55,14 +58,7 @@ final class ServerGameLoop {
     private void applyInputs(){
         ClientCommand c;
         while ((c = inputs.poll()) != null) {
-            switch (c.kind) {
-                case "MOUSE_DOWN" -> { /* TODO: translate to world/controller action */ }
-                case "MOUSE_DRAG" -> { /* ... */ }
-                case "MOUSE_UP"   -> { /* ... */ }
-                case "KEY_DOWN"   -> { /* ... (split KEY/UP/DOWN if you like) */ }
-                case "KEY_UP"     -> { /* ... */ }
-                default -> { /* ignore unknown kinds safely */ }
-            }
+            applier.apply(c);              // ← use the applier
         }
     }
 }

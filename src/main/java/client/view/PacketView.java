@@ -39,7 +39,6 @@ public class PacketView implements View<PacketSnapshot> {
 
 
     public PacketView() {
-        System.out.println();
         base.put(PacketShape.SQUARE,        null);
         base.put(PacketShape.TRIANGLE,      null);
         base.put(PacketShape.INFINITY,      cache.load("/packets/infinity.png"));

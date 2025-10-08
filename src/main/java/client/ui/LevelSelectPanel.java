@@ -52,7 +52,8 @@ public final class LevelSelectPanel extends JPanel {
     private boolean isLevelUnlocked(int n) {
         if (n == 1) return true;
         for (int i = 1; i < n; i++) {
-            if (!GameState.isLevelPassed("level" + i)) return false;
+            return true; // TODO: 10/8/2025 fix this
+            //if (!GameState.isLevelPassed("level" + i)) return false;
         }
         return true;
     }

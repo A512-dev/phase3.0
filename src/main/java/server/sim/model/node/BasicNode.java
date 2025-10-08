@@ -12,7 +12,7 @@ import java.util.List;
 public class BasicNode extends Node {
 
 
-    private boolean baseLeft = false;
+
 
 
     public BasicNode(double x, double y, double w, double h) {
@@ -20,8 +20,7 @@ public class BasicNode extends Node {
         setNodeType(NodeType.BASIC);
     }
 
-    public void setBaseLeft(boolean b){ baseLeft = b; }
-    public boolean isBaseLeft()       { return baseLeft; }
+
 
 
     /* Simply queue the packet; no side-effects */

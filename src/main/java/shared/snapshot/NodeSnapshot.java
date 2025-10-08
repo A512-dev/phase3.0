@@ -15,6 +15,7 @@ public record NodeSnapshot(
         List<PortSnapshot>  ports,
         NodeType            nodeType,      // “BasicNode”, “SpyNode”, …
         boolean             isAllConnected,
+        boolean isbaseleft,
         List<PacketSnapshot> queue         // ✅ immutable snapshots, not live Packets
 ) {
 

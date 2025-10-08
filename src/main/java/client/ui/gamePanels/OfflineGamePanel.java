@@ -58,8 +58,8 @@ public final class OfflineGamePanel extends BaseGamePanel implements Consumer<Wo
         timeSlider.setBounds(getWidth()/2 - 150, getHeight() - 50, 300, 30);
     }
 
-    @Override protected boolean isGameOver() { return snap != null && snap.isGameOver(); }
-    @Override protected boolean isViewOnly() { return snap != null && snap.isViewOnly(); }
+    @Override protected boolean isGameOver() { return snap != null && snap.gameOver(); }
+    @Override protected boolean isViewOnly() { return snap != null && snap.viewOnlyMode(); }
 
     @Override public void accept(WorldSnapshot s) {
         this.snap = s;
